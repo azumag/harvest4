@@ -149,6 +149,11 @@ export class TradingBot {
 
   private async placeOrder(signal: TradingSignal): Promise<number | null> {
     try {
+      // Ensure signal.action is not 'hold' (should be filtered out before calling this method)
+      if (signal.action === 'hold') {
+        return null;
+      }
+
       const order = await this.client.createOrder({
         pair: this.config.pair,
         amount: signal.amount.toString(),

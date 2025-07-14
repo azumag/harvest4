@@ -54,8 +54,8 @@ describe('BitbankClient', () => {
         config: {} as any,
       };
 
-      const mockAxiosInstance = mockedAxios.create();
-      (mockAxiosInstance.get as jest.Mock).mockResolvedValue(mockResponse);
+      const mockAxiosInstance = mockedAxios.create() as any;
+      mockAxiosInstance.get.mockResolvedValue(mockResponse);
 
       const result = await client.getTicker('btc_jpy');
 
@@ -75,8 +75,8 @@ describe('BitbankClient', () => {
         config: {} as any,
       };
 
-      const mockAxiosInstance = mockedAxios.create();
-      (mockAxiosInstance.get as jest.Mock).mockResolvedValue(mockResponse);
+      const mockAxiosInstance = mockedAxios.create() as any;
+      mockAxiosInstance.get.mockResolvedValue(mockResponse);
 
       await expect(client.getTicker('btc_jpy')).rejects.toThrow('Failed to get ticker data');
     });
@@ -117,8 +117,8 @@ describe('BitbankClient', () => {
         config: {} as any,
       };
 
-      const mockAxiosInstance = mockedAxios.create();
-      (mockAxiosInstance.post as jest.Mock).mockResolvedValue(mockResponse);
+      const mockAxiosInstance = mockedAxios.create() as any;
+      mockAxiosInstance.post.mockResolvedValue(mockResponse);
 
       const result = await client.createOrder(orderRequest);
 
@@ -156,8 +156,8 @@ describe('BitbankClient', () => {
         config: {} as any,
       };
 
-      const mockAxiosInstance = mockedAxios.create();
-      (mockAxiosInstance.post as jest.Mock).mockResolvedValue(mockResponse);
+      const mockAxiosInstance = mockedAxios.create() as any;
+      mockAxiosInstance.post.mockResolvedValue(mockResponse);
 
       await expect(client.createOrder(orderRequest)).rejects.toThrow('Failed to create order');
     });
