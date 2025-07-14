@@ -1,12 +1,12 @@
 import { jest } from '@jest/globals';
-import axios, { AxiosResponse, AxiosRequestConfig, AxiosInstance } from 'axios';
+import axios, { AxiosResponse, AxiosRequestConfig, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { BitbankClient } from '../api/bitbank-client';
 import { BitbankConfig, BitbankApiResponse, BitbankTicker, BitbankOrder } from '../types/bitbank';
 
-// Type for accessing private members in tests
-type BitbankClientPrivate = BitbankClient & {
+// Interface for accessing private members in tests
+interface BitbankClientPrivateMembers {
   createAuthHeaders: (path: string, body?: string) => Record<string, string>;
-};
+}
 
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
@@ -14,6 +14,7 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 describe('BitbankClient', () => {
   let client: BitbankClient;
   let config: BitbankConfig;
+  let mockAxiosInstance: jest.Mocked<AxiosInstance>;
 
   beforeEach(() => {
     config = {
@@ -22,11 +23,13 @@ describe('BitbankClient', () => {
       baseUrl: 'https://api.bitbank.cc',
     };
 
-    mockedAxios.create.mockReturnValue({
+    mockAxiosInstance = {
       get: jest.fn(),
       post: jest.fn(),
       defaults: { timeout: 10000 },
-    } as jest.Mocked<AxiosInstance>);
+    } as unknown as jest.Mocked<AxiosInstance>;
+    
+    mockedAxios.create.mockReturnValue(mockAxiosInstance);
 
     client = new BitbankClient(config);
   });
@@ -56,10 +59,9 @@ describe('BitbankClient', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as AxiosRequestConfig,
+        config: {} as InternalAxiosRequestConfig,
       };
 
-      const mockAxiosInstance = mockedAxios.create();
       (mockAxiosInstance.get as jest.Mock).mockResolvedValue(mockResponse);
 
       const result = await client.getTicker('btc_jpy');
@@ -77,10 +79,9 @@ describe('BitbankClient', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as AxiosRequestConfig,
+        config: {} as InternalAxiosRequestConfig,
       };
 
-      const mockAxiosInstance = mockedAxios.create();
       (mockAxiosInstance.get as jest.Mock).mockResolvedValue(mockResponse);
 
       await expect(client.getTicker('btc_jpy')).rejects.toThrow('Failed to get ticker data');
@@ -119,10 +120,9 @@ describe('BitbankClient', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as AxiosRequestConfig,
+        config: {} as InternalAxiosRequestConfig,
       };
 
-      const mockAxiosInstance = mockedAxios.create();
       (mockAxiosInstance.post as jest.Mock).mockResolvedValue(mockResponse);
 
       const result = await client.createOrder(orderRequest);
@@ -153,15 +153,26 @@ describe('BitbankClient', () => {
       const mockResponse: AxiosResponse<BitbankApiResponse<BitbankOrder>> = {
         data: {
           success: 0,
-          data: {},
+          data: {
+            order_id: 12345,
+            pair: 'btc_jpy',
+            side: 'buy',
+            type: 'limit',
+            start_amount: '0.001',
+            remaining_amount: '0.001',
+            executed_amount: '0.000',
+            price: '5000000',
+            average_price: '0',
+            ordered_at: Date.now(),
+            status: 'UNFILLED',
+          } as BitbankOrder,
         },
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as AxiosRequestConfig,
+        config: {} as InternalAxiosRequestConfig,
       };
 
-      const mockAxiosInstance = mockedAxios.create();
       (mockAxiosInstance.post as jest.Mock).mockResolvedValue(mockResponse);
 
       await expect(client.createOrder(orderRequest)).rejects.toThrow('Failed to create order');
@@ -174,7 +185,7 @@ describe('BitbankClient', () => {
       const body = '{"test": "data"}';
 
       // Access the private method through casting
-      const authHeaders = (client as BitbankClientPrivate).createAuthHeaders(path, body);
+      const authHeaders = (client as any as BitbankClientPrivateMembers).createAuthHeaders(path, body);
 
       expect(authHeaders).toHaveProperty('ACCESS-KEY', config.apiKey);
       expect(authHeaders).toHaveProperty('ACCESS-NONCE');
