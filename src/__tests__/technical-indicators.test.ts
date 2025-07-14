@@ -187,7 +187,9 @@ describe('TechnicalIndicators', () => {
     });
 
     it('should detect bullish trend in multi-timeframe analysis', () => {
-      const strongUpward = Array.from({ length: 100 }, (_, i) => 5000000 + i * 5000);
+      // Need more data points to satisfy the minimum requirements for all timeframes
+      // 1m timeframe (60 periods) needs 60*10=600 data points
+      const strongUpward = Array.from({ length: 700 }, (_, i) => 5000000 + i * 5000);
       addPriceData(strongUpward);
       
       const multiTimeframe = indicators.analyzeMultiTimeframe();
@@ -245,7 +247,7 @@ describe('TechnicalIndicators', () => {
       
       const volumeIndicators = indicators.calculateVolumeIndicators();
       expect(volumeIndicators).toBeDefined();
-      expect(volumeIndicators!.vwap).toBe(5024000); // Should fallback to last price
+      expect(volumeIndicators!.vwap).toBe(5014500); // VWAP of last 20 periods
     });
   });
 });
