@@ -25,24 +25,17 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           fetch-depth: 1
-          
-      - name: Generate GitHub App Token
-        id: app-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
       - name: Approve PR
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         run: |
           echo "Approving PR #${{ github.event.issue.number }}"
           gh pr review ${{ github.event.issue.number }} --approve
 
       - name: Merge PR
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         run: |
           echo "Merging PR #${{ github.event.issue.number }}"
           gh pr merge ${{ github.event.issue.number }} --merge --auto

@@ -35,22 +35,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
-
-      - name: Generate GitHub App Token
-        id: app-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          fetch-depth: 1
 
       - name: Run Claude Code for CI Fix
         id: claude
         uses: anthropics/claude-code-action@beta
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          github-token: ${{ steps.app-token.outputs.token }}
+          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           
           additional_permissions: |
             actions: read
