@@ -41,8 +41,8 @@ export interface MultiTimeframeSignal {
 
 export class TechnicalIndicators {
   private priceHistory: PriceData[] = [];
-  private previousMACDHistogram: number = 0;
-  private previousOBV: number = 0;
+  private previousMACDHistogram = 0;
+  private previousOBV = 0;
 
   updateData(price: number, volume: number, timestamp: number = Date.now()): void {
     this.priceHistory.push({ price, volume, timestamp });
@@ -52,7 +52,7 @@ export class TechnicalIndicators {
     }
   }
 
-  calculateRSI(period: number = 14): RSIResult | null {
+  calculateRSI(period = 14): RSIResult | null {
     if (this.priceHistory.length < period + 1) {
       return null;
     }
@@ -91,7 +91,7 @@ export class TechnicalIndicators {
     };
   }
 
-  calculateMACD(fastPeriod: number = 12, slowPeriod: number = 26, signalPeriod: number = 9): MACDResult | null {
+  calculateMACD(fastPeriod = 12, slowPeriod = 26, signalPeriod = 9): MACDResult | null {
     if (this.priceHistory.length < slowPeriod) {
       return null;
     }
@@ -126,7 +126,7 @@ export class TechnicalIndicators {
     };
   }
 
-  calculateBollingerBands(period: number = 20, standardDeviations: number = 2): BollingerBandsResult | null {
+  calculateBollingerBands(period = 20, standardDeviations = 2): BollingerBandsResult | null {
     if (this.priceHistory.length < period) {
       return null;
     }
@@ -156,7 +156,7 @@ export class TechnicalIndicators {
     };
   }
 
-  calculateVolumeIndicators(period: number = 20): VolumeIndicatorsResult | null {
+  calculateVolumeIndicators(period = 20): VolumeIndicatorsResult | null {
     if (this.priceHistory.length < period) {
       return null;
     }

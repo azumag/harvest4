@@ -35,7 +35,7 @@ export class TradingStrategy {
     this.technicalIndicators = new TechnicalIndicators();
   }
 
-  updatePrice(price: number, volume: number = 1000): void {
+  updatePrice(price: number, volume = 1000): void {
     this.technicalIndicators.updateData(price, volume);
   }
 

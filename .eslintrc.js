@@ -13,7 +13,7 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2022,
     sourceType: 'module',
-    project: './tsconfig.json',
+    project: './tsconfig.eslint.json',
   },
   rules: {
     '@typescript-eslint/no-unused-vars': 'error',
