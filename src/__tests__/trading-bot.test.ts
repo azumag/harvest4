@@ -1,9 +1,11 @@
 import { jest } from '@jest/globals';
+import { AxiosInstance } from 'axios';
 import { TradingBot, TradingBotConfig } from '../bot/trading-bot';
 import { BitbankClient } from '../api/bitbank-client';
-import { TradingStrategy } from '../strategies/trading-strategy';
+import { TradingStrategy, TradingStrategyConfig } from '../strategies/trading-strategy';
+import { TechnicalIndicators } from '../utils/technical-indicators';
 import { ProfitCalculator } from '../utils/profit-calculator';
-import { BitbankTicker, BitbankOrder, TradingPosition, TradingSignal } from '../types/bitbank';
+import { BitbankTicker, BitbankOrder, TradingPosition, TradingSignal, BitbankConfig } from '../types/bitbank';
 
 // Interface for accessing private members in tests
 interface TradingBotPrivateMembers {
@@ -63,8 +65,8 @@ describe('TradingBot', () => {
       getOrder: jest.fn(),
       cancelOrder: jest.fn(),
       getActiveOrders: jest.fn(),
-      client: {} as any,
-      config: {} as any,
+      client: {} as AxiosInstance,
+      config: {} as BitbankConfig,
       createSignature: jest.fn(),
       createAuthHeaders: jest.fn(),
     } as jest.Mocked<BitbankClient>;
@@ -72,8 +74,8 @@ describe('TradingBot', () => {
     mockStrategy = {
       generateSignal: jest.fn(),
       updatePrice: jest.fn(),
-      config: {} as any,
-      technicalIndicators: {} as any,
+      config: {} as TradingStrategyConfig,
+      technicalIndicators: {} as TechnicalIndicators,
       analyzeAdvancedMarketConditions: jest.fn(),
       evaluateAllSignals: jest.fn(),
       calculateSignalStrength: jest.fn(),
@@ -172,7 +174,7 @@ describe('TradingBot', () => {
 
     it('should throw error if already running', async () => {
       // Mock the trading loop to prevent infinite running
-      (bot as any as TradingBotPrivateMembers).tradingLoop = jest.fn();
+      (bot as TradingBotPrivateMembers).tradingLoop = jest.fn();
 
       await bot.start();
       
@@ -182,11 +184,11 @@ describe('TradingBot', () => {
     });
 
     it('should validate configuration before starting', async () => {
-      const validateSpy = jest.spyOn(bot as any, 'validateConfiguration');
+      const validateSpy = jest.spyOn(bot as TradingBotPrivateMembers, 'validateConfiguration');
       validateSpy.mockResolvedValue(undefined);
 
       // Mock the trading loop to prevent infinite running
-      (bot as any as TradingBotPrivateMembers).tradingLoop = jest.fn();
+      (bot as TradingBotPrivateMembers).tradingLoop = jest.fn();
 
       await bot.start();
 
@@ -226,7 +228,7 @@ describe('TradingBot', () => {
         status: 'UNFILLED',
       });
 
-      await (bot as any as TradingBotPrivateMembers).executeSignal(buySignal);
+      await (bot as TradingBotPrivateMembers).executeSignal(buySignal);
 
       expect(mockClient.createOrder).toHaveBeenCalledWith({
         pair: config.pair,
@@ -249,11 +251,11 @@ describe('TradingBot', () => {
       };
 
       // Fill up active positions
-      (bot as any as TradingBotPrivateMembers).activePositions.set('pos1', {} as TradingPosition);
-      (bot as any as TradingBotPrivateMembers).activePositions.set('pos2', {} as TradingPosition);
-      (bot as any as TradingBotPrivateMembers).activePositions.set('pos3', {} as TradingPosition);
+      (bot as TradingBotPrivateMembers).activePositions.set('pos1', {} as TradingPosition);
+      (bot as TradingBotPrivateMembers).activePositions.set('pos2', {} as TradingPosition);
+      (bot as TradingBotPrivateMembers).activePositions.set('pos3', {} as TradingPosition);
 
-      await (bot as any as TradingBotPrivateMembers).executeSignal(buySignal);
+      await (bot as TradingBotPrivateMembers).executeSignal(buySignal);
 
       expect(mockClient.createOrder).not.toHaveBeenCalled();
     });
@@ -269,7 +271,7 @@ describe('TradingBot', () => {
 
       mockClient.createOrder.mockRejectedValue(new Error('Order failed'));
 
-      await (bot as any as TradingBotPrivateMembers).executeSignal(buySignal);
+      await (bot as TradingBotPrivateMembers).executeSignal(buySignal);
 
       expect(mockClient.createOrder).toHaveBeenCalled();
       expect(mockProfitCalculator.addPosition).not.toHaveBeenCalled();
@@ -286,7 +288,7 @@ describe('TradingBot', () => {
         orderId: 12345,
       };
 
-      (bot as any as TradingBotPrivateMembers).activePositions.set('pos1', position);
+      (bot as TradingBotPrivateMembers).activePositions.set('pos1', position);
 
       const ticker = {
         pair: 'btc_jpy',
@@ -302,7 +304,7 @@ describe('TradingBot', () => {
       mockClient.cancelOrder.mockResolvedValue({} as BitbankOrder);
       mockClient.createOrder.mockResolvedValue({} as BitbankOrder);
 
-      await (bot as any as TradingBotPrivateMembers).checkStopLossAndTakeProfit(ticker);
+      await (bot as TradingBotPrivateMembers).checkStopLossAndTakeProfit(ticker);
 
       expect(mockClient.cancelOrder).toHaveBeenCalledWith(config.pair, 12345);
       expect(mockClient.createOrder).toHaveBeenCalledWith({
@@ -322,7 +324,7 @@ describe('TradingBot', () => {
         orderId: 12345,
       };
 
-      (bot as any as TradingBotPrivateMembers).activePositions.set('pos1', position);
+      (bot as TradingBotPrivateMembers).activePositions.set('pos1', position);
 
       const ticker = {
         pair: 'btc_jpy',
@@ -338,7 +340,7 @@ describe('TradingBot', () => {
       mockClient.cancelOrder.mockResolvedValue({} as BitbankOrder);
       mockClient.createOrder.mockResolvedValue({} as BitbankOrder);
 
-      await (bot as any as TradingBotPrivateMembers).checkStopLossAndTakeProfit(ticker);
+      await (bot as TradingBotPrivateMembers).checkStopLossAndTakeProfit(ticker);
 
       expect(mockClient.cancelOrder).toHaveBeenCalledWith(config.pair, 12345);
       expect(mockClient.createOrder).toHaveBeenCalledWith({
@@ -360,8 +362,8 @@ describe('TradingBot', () => {
         orderId: 12345,
       };
 
-      (bot as any as TradingBotPrivateMembers).activePositions.set('pos1', position);
-      (bot as any as TradingBotPrivateMembers).isRunning = true;
+      (bot as TradingBotPrivateMembers).activePositions.set('pos1', position);
+      (bot as TradingBotPrivateMembers).isRunning = true;
 
       mockClient.getTicker.mockResolvedValue({
         pair: 'btc_jpy',
@@ -407,7 +409,7 @@ describe('TradingBot', () => {
         timestamp: Date.now(),
       };
 
-      (bot as any as TradingBotPrivateMembers).activePositions.set('pos1', position);
+      (bot as TradingBotPrivateMembers).activePositions.set('pos1', position);
 
       const activePositions = bot.getActivePositions();
 

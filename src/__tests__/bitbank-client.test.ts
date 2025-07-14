@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import axios, { AxiosResponse, AxiosRequestConfig, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosResponse, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { BitbankClient } from '../api/bitbank-client';
 import { BitbankConfig, BitbankApiResponse, BitbankTicker, BitbankOrder } from '../types/bitbank';
 
@@ -185,7 +185,7 @@ describe('BitbankClient', () => {
       const body = '{"test": "data"}';
 
       // Access the private method through casting
-      const authHeaders = (client as any as BitbankClientPrivateMembers).createAuthHeaders(path, body);
+      const authHeaders = (client as BitbankClientPrivateMembers).createAuthHeaders(path, body);
 
       expect(authHeaders).toHaveProperty('ACCESS-KEY', config.apiKey);
       expect(authHeaders).toHaveProperty('ACCESS-NONCE');
