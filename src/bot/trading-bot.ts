@@ -153,7 +153,7 @@ export class TradingBot {
         pair: this.config.pair,
         amount: signal.amount.toString(),
         price: signal.price.toString(),
-        side: signal.action,
+        side: signal.action as 'buy' | 'sell',
         type: 'limit',
       });
 
