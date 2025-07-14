@@ -1,0 +1,54 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: harvest4-trading-bot
+  annotations:
+    run.googleapis.com/ingress: internal
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/cpu-throttling: "false"
+        autoscaling.knative.dev/minScale: "1"
+        autoscaling.knative.dev/maxScale: "1"
+    spec:
+      containerConcurrency: 1
+      timeoutSeconds: 3600
+      serviceAccountName: harvest4-service-account
+      containers:
+      - image: gcr.io/PROJECT_ID/harvest4-trading-bot:latest
+        env:
+        - name: NODE_ENV
+          value: production
+        - name: BB_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: bitbank-credentials
+              key: api_key
+        - name: BB_API_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: bitbank-credentials
+              key: api_secret
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
