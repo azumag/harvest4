@@ -272,7 +272,7 @@ describe('TradingBot', () => {
         orderId: 12345,
       };
 
-      (bot as any).activePositions.set('pos1', position);
+      (bot as TradingBotPrivate).activePositions.set('pos1', position);
 
       const ticker = {
         pair: 'btc_jpy',
@@ -285,10 +285,10 @@ describe('TradingBot', () => {
         timestamp: Date.now(),
       };
 
-      mockClient.cancelOrder.mockResolvedValue({} as any);
-      mockClient.createOrder.mockResolvedValue({} as any);
+      mockClient.cancelOrder.mockResolvedValue({} as BitbankOrder);
+      mockClient.createOrder.mockResolvedValue({} as BitbankOrder);
 
-      await (bot as any).checkStopLossAndTakeProfit(ticker);
+      await (bot as TradingBotPrivate).checkStopLossAndTakeProfit(ticker);
 
       expect(mockClient.cancelOrder).toHaveBeenCalledWith(config.pair, 12345);
       expect(mockClient.createOrder).toHaveBeenCalledWith({
@@ -308,7 +308,7 @@ describe('TradingBot', () => {
         orderId: 12345,
       };
 
-      (bot as any).activePositions.set('pos1', position);
+      (bot as TradingBotPrivate).activePositions.set('pos1', position);
 
       const ticker = {
         pair: 'btc_jpy',
@@ -321,10 +321,10 @@ describe('TradingBot', () => {
         timestamp: Date.now(),
       };
 
-      mockClient.cancelOrder.mockResolvedValue({} as any);
-      mockClient.createOrder.mockResolvedValue({} as any);
+      mockClient.cancelOrder.mockResolvedValue({} as BitbankOrder);
+      mockClient.createOrder.mockResolvedValue({} as BitbankOrder);
 
-      await (bot as any).checkStopLossAndTakeProfit(ticker);
+      await (bot as TradingBotPrivate).checkStopLossAndTakeProfit(ticker);
 
       expect(mockClient.cancelOrder).toHaveBeenCalledWith(config.pair, 12345);
       expect(mockClient.createOrder).toHaveBeenCalledWith({
