@@ -20,7 +20,7 @@ describe('TradingStrategy - Advanced Features', () => {
     strategy = new TradingStrategy(config);
   });
 
-  const createMockTicker = (price: string, volume: string = '2000'): BitbankTicker => ({
+  const createMockTicker = (price: string, volume = '2000'): BitbankTicker => ({
     pair: 'btc_jpy',
     sell: (parseFloat(price) + 1000).toString(),
     buy: (parseFloat(price) - 1000).toString(),

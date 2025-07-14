@@ -1,7 +1,12 @@
 import { jest } from '@jest/globals';
-import axios, { AxiosResponse } from 'axios';
+import axios, { AxiosResponse, AxiosRequestConfig, AxiosInstance } from 'axios';
 import { BitbankClient } from '../api/bitbank-client';
-import { BitbankConfig, BitbankApiResponse, BitbankTicker } from '../types/bitbank';
+import { BitbankConfig, BitbankApiResponse, BitbankTicker, BitbankOrder } from '../types/bitbank';
+
+// Type for accessing private members in tests
+type BitbankClientPrivate = BitbankClient & {
+  createAuthHeaders: (path: string, body?: string) => Record<string, string>;
+};
 
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
@@ -21,7 +26,7 @@ describe('BitbankClient', () => {
       get: jest.fn(),
       post: jest.fn(),
       defaults: { timeout: 10000 },
-    } as any);
+    } as jest.Mocked<AxiosInstance>);
 
     client = new BitbankClient(config);
   });
@@ -51,7 +56,7 @@ describe('BitbankClient', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any,
+        config: {} as AxiosRequestConfig,
       };
 
       const mockAxiosInstance = mockedAxios.create();
@@ -72,7 +77,7 @@ describe('BitbankClient', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any,
+        config: {} as AxiosRequestConfig,
       };
 
       const mockAxiosInstance = mockedAxios.create();
@@ -114,7 +119,7 @@ describe('BitbankClient', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any,
+        config: {} as AxiosRequestConfig,
       };
 
       const mockAxiosInstance = mockedAxios.create();
@@ -145,7 +150,7 @@ describe('BitbankClient', () => {
         type: 'limit' as const,
       };
 
-      const mockResponse: AxiosResponse<BitbankApiResponse<any>> = {
+      const mockResponse: AxiosResponse<BitbankApiResponse<BitbankOrder>> = {
         data: {
           success: 0,
           data: {},
@@ -153,7 +158,7 @@ describe('BitbankClient', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any,
+        config: {} as AxiosRequestConfig,
       };
 
       const mockAxiosInstance = mockedAxios.create();
@@ -169,7 +174,7 @@ describe('BitbankClient', () => {
       const body = '{"test": "data"}';
 
       // Access the private method through casting
-      const authHeaders = (client as any).createAuthHeaders(path, body);
+      const authHeaders = (client as BitbankClientPrivate).createAuthHeaders(path, body);
 
       expect(authHeaders).toHaveProperty('ACCESS-KEY', config.apiKey);
       expect(authHeaders).toHaveProperty('ACCESS-NONCE');
