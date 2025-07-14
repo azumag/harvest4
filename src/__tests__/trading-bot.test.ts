@@ -20,9 +20,9 @@ const MockedProfitCalculator = ProfitCalculator as jest.MockedClass<typeof Profi
 describe('TradingBot', () => {
   let bot: TradingBot;
   let config: TradingBotConfig;
-  let mockClient: jest.Mocked<BitbankClient>;
-  let mockStrategy: jest.Mocked<TradingStrategy>;
-  let mockProfitCalculator: jest.Mocked<ProfitCalculator>;
+  let mockClient: any;
+  let mockStrategy: any;
+  let mockProfitCalculator: any;
 
   beforeEach(() => {
     config = {
@@ -60,7 +60,7 @@ describe('TradingBot', () => {
       config: {} as BitbankConfig,
       createSignature: jest.fn(),
       createAuthHeaders: jest.fn(),
-    } as jest.Mocked<BitbankClient>;
+    } as any;
 
     mockStrategy = {
       generateSignal: jest.fn(),
@@ -73,7 +73,7 @@ describe('TradingBot', () => {
       calculateAdvancedTradeAmount: jest.fn(),
       generateSignalReason: jest.fn(),
       applyAdvancedRiskManagement: jest.fn(),
-    } as jest.Mocked<TradingStrategy>;
+    } as any;
 
     mockProfitCalculator = {
       addPosition: jest.fn(),
@@ -91,7 +91,7 @@ describe('TradingBot', () => {
       getWinningStreak: jest.fn(),
       getLosingStreak: jest.fn(),
       reset: jest.fn(),
-    } as jest.Mocked<ProfitCalculator>;
+    } as any;
 
     // Mock constructors
     MockedBitbankClient.mockImplementation(() => mockClient);
@@ -170,7 +170,7 @@ describe('TradingBot', () => {
 
     it('should throw error if already running', async () => {
       // Mock the trading loop to prevent infinite running
-      (bot as TradingBot & { tradingLoop: jest.Mock }).tradingLoop = jest.fn().mockResolvedValue(undefined);
+      (bot as any).tradingLoop = jest.fn().mockResolvedValue(undefined);
 
       await bot.start();
       
@@ -180,11 +180,11 @@ describe('TradingBot', () => {
     });
 
     it('should validate configuration before starting', async () => {
-      const validateSpy = jest.spyOn(bot as TradingBot & { validateConfiguration: () => Promise<void> }, 'validateConfiguration');
+      const validateSpy = jest.spyOn(bot as any, 'validateConfiguration');
       validateSpy.mockResolvedValue(undefined);
 
       // Mock the trading loop to prevent infinite running
-      (bot as TradingBot & { tradingLoop: jest.Mock }).tradingLoop = jest.fn().mockResolvedValue(undefined);
+      (bot as any).tradingLoop = jest.fn().mockResolvedValue(undefined);
 
       await bot.start();
 
@@ -224,7 +224,7 @@ describe('TradingBot', () => {
         status: 'UNFILLED',
       });
 
-      await (bot as TradingBot & { executeSignal: (signal: TradingSignal) => Promise<void> }).executeSignal(buySignal);
+      await (bot as any).executeSignal(buySignal);
 
       expect(mockClient.createOrder).toHaveBeenCalledWith({
         pair: config.pair,
@@ -247,12 +247,11 @@ describe('TradingBot', () => {
       };
 
       // Fill up active positions
-      const botWithPositions = bot as TradingBot & { activePositions: Map<string, TradingPosition> };
-      botWithPositions.activePositions.set('pos1', {} as TradingPosition);
-      botWithPositions.activePositions.set('pos2', {} as TradingPosition);
-      botWithPositions.activePositions.set('pos3', {} as TradingPosition);
+      (bot as any).activePositions.set('pos1', {} as TradingPosition);
+      (bot as any).activePositions.set('pos2', {} as TradingPosition);
+      (bot as any).activePositions.set('pos3', {} as TradingPosition);
 
-      await (bot as TradingBot & { executeSignal: (signal: TradingSignal) => Promise<void> }).executeSignal(buySignal);
+      await (bot as any).executeSignal(buySignal);
 
       expect(mockClient.createOrder).not.toHaveBeenCalled();
     });
@@ -268,7 +267,7 @@ describe('TradingBot', () => {
 
       mockClient.createOrder.mockRejectedValue(new Error('Order failed'));
 
-      await (bot as TradingBot & { executeSignal: (signal: TradingSignal) => Promise<void> }).executeSignal(buySignal);
+      await (bot as any).executeSignal(buySignal);
 
       expect(mockClient.createOrder).toHaveBeenCalled();
       expect(mockProfitCalculator.addPosition).not.toHaveBeenCalled();
@@ -285,7 +284,7 @@ describe('TradingBot', () => {
         orderId: 12345,
       };
 
-      (bot as TradingBot & { activePositions: Map<string, TradingPosition> }).activePositions.set('pos1', position);
+      (bot as any).activePositions.set('pos1', position);
 
       const ticker = {
         pair: 'btc_jpy',
@@ -301,7 +300,7 @@ describe('TradingBot', () => {
       mockClient.cancelOrder.mockResolvedValue({} as BitbankOrder);
       mockClient.createOrder.mockResolvedValue({} as BitbankOrder);
 
-      await (bot as TradingBot & { checkStopLossAndTakeProfit: (ticker: BitbankTicker) => Promise<void> }).checkStopLossAndTakeProfit(ticker);
+      await (bot as any).checkStopLossAndTakeProfit(ticker);
 
       expect(mockClient.cancelOrder).toHaveBeenCalledWith(config.pair, 12345);
       expect(mockClient.createOrder).toHaveBeenCalledWith({
@@ -321,7 +320,7 @@ describe('TradingBot', () => {
         orderId: 12345,
       };
 
-      (bot as TradingBot & { activePositions: Map<string, TradingPosition> }).activePositions.set('pos1', position);
+      (bot as any).activePositions.set('pos1', position);
 
       const ticker = {
         pair: 'btc_jpy',
@@ -337,7 +336,7 @@ describe('TradingBot', () => {
       mockClient.cancelOrder.mockResolvedValue({} as BitbankOrder);
       mockClient.createOrder.mockResolvedValue({} as BitbankOrder);
 
-      await (bot as TradingBot & { checkStopLossAndTakeProfit: (ticker: BitbankTicker) => Promise<void> }).checkStopLossAndTakeProfit(ticker);
+      await (bot as any).checkStopLossAndTakeProfit(ticker);
 
       expect(mockClient.cancelOrder).toHaveBeenCalledWith(config.pair, 12345);
       expect(mockClient.createOrder).toHaveBeenCalledWith({
@@ -359,9 +358,8 @@ describe('TradingBot', () => {
         orderId: 12345,
       };
 
-      const botWithPrivate = bot as TradingBot & { activePositions: Map<string, TradingPosition>; isRunning: boolean };
-      botWithPrivate.activePositions.set('pos1', position);
-      botWithPrivate.isRunning = true;
+      (bot as any).activePositions.set('pos1', position);
+      (bot as any).isRunning = true;
 
       mockClient.getTicker.mockResolvedValue({
         pair: 'btc_jpy',
@@ -407,7 +405,7 @@ describe('TradingBot', () => {
         timestamp: Date.now(),
       };
 
-      (bot as TradingBot & { activePositions: Map<string, TradingPosition> }).activePositions.set('pos1', position);
+      (bot as any).activePositions.set('pos1', position);
 
       const activePositions = bot.getActivePositions();
 
