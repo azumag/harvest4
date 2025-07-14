@@ -1,0 +1,22 @@
+{
+  "name": "harvest4",
+  "version": "1.0.0",
+  "description": "Harvest4 project with GitHub Actions automation",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "test:unit": "jest --testPathPattern=test/unit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "build": "echo 'Build completed'",
+    "start": "node index.js"
+  },
+  "keywords": ["github-actions", "automation", "ci-cd"],
+  "author": "Tsubasa Azumagakito",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0"
+  },
+  "dependencies": {}
+}
