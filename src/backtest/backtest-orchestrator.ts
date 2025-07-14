@@ -1,7 +1,6 @@
 import { 
   BacktestConfig, 
   OptimizationConfig, 
-  HistoricalCandle,
   BacktestResult,
   OptimizationResult,
   StrategyComparison
@@ -163,11 +162,9 @@ export class BacktestOrchestrator {
     // Step 7: Analyze performance against targets
     const summary = this.analyzeTradingTargets(finalBacktest);
 
-    return {
+    const result: FullAnalysisResult = {
       backtest: finalBacktest,
       performanceReport,
-      optimization,
-      comparison,
       dataQuality: {
         totalCandles: dataQualityReport.totalCandles,
         qualityScore: dataQualityReport.qualityScore,
@@ -175,6 +172,16 @@ export class BacktestOrchestrator {
       },
       summary
     };
+
+    if (optimization) {
+      result.optimization = optimization;
+    }
+    
+    if (comparison) {
+      result.comparison = comparison;
+    }
+
+    return result;
   }
 
   async runQuickBacktest(strategyConfig: TradingStrategyConfig): Promise<BacktestResult> {

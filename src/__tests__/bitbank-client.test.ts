@@ -17,11 +17,13 @@ describe('BitbankClient', () => {
       baseUrl: 'https://api.bitbank.cc',
     };
 
-    mockedAxios.create.mockReturnValue({
+    const mockAxiosInstance = {
       get: jest.fn(),
       post: jest.fn(),
       defaults: { timeout: 10000 },
-    } as any);
+    };
+    
+    mockedAxios.create.mockReturnValue(mockAxiosInstance as any);
 
     client = new BitbankClient(config);
   });
@@ -55,7 +57,7 @@ describe('BitbankClient', () => {
       };
 
       const mockAxiosInstance = mockedAxios.create();
-      (mockAxiosInstance.get as jest.Mock).mockResolvedValue(mockResponse);
+      (mockAxiosInstance.get as jest.MockedFunction<any>).mockResolvedValue(mockResponse);
 
       const result = await client.getTicker('btc_jpy');
 
@@ -76,7 +78,7 @@ describe('BitbankClient', () => {
       };
 
       const mockAxiosInstance = mockedAxios.create();
-      (mockAxiosInstance.get as jest.Mock).mockResolvedValue(mockResponse);
+      (mockAxiosInstance.get as jest.MockedFunction<any>).mockResolvedValue(mockResponse);
 
       await expect(client.getTicker('btc_jpy')).rejects.toThrow('Failed to get ticker data');
     });
@@ -118,7 +120,7 @@ describe('BitbankClient', () => {
       };
 
       const mockAxiosInstance = mockedAxios.create();
-      (mockAxiosInstance.post as jest.Mock).mockResolvedValue(mockResponse);
+      (mockAxiosInstance.post as jest.MockedFunction<any>).mockResolvedValue(mockResponse);
 
       const result = await client.createOrder(orderRequest);
 
@@ -157,7 +159,7 @@ describe('BitbankClient', () => {
       };
 
       const mockAxiosInstance = mockedAxios.create();
-      (mockAxiosInstance.post as jest.Mock).mockResolvedValue(mockResponse);
+      (mockAxiosInstance.post as jest.MockedFunction<any>).mockResolvedValue(mockResponse);
 
       await expect(client.createOrder(orderRequest)).rejects.toThrow('Failed to create order');
     });

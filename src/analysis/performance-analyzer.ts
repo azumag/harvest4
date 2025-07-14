@@ -130,8 +130,12 @@ export class PerformanceAnalyzer {
     const returns: number[] = [];
     
     for (let i = 1; i < equity.length; i++) {
-      const returnRate = (equity[i].balance - equity[i - 1].balance) / equity[i - 1].balance;
-      returns.push(returnRate);
+      const current = equity[i];
+      const previous = equity[i - 1];
+      if (current && previous && previous.balance !== 0) {
+        const returnRate = (current.balance - previous.balance) / previous.balance;
+        returns.push(returnRate);
+      }
     }
     
     return returns;
@@ -194,7 +198,10 @@ export class PerformanceAnalyzer {
   private calculateUlcerIndex(equity: EquityPoint[]): number {
     if (equity.length === 0) return 0;
     
-    let peak = equity[0].balance;
+    const firstPoint = equity[0];
+    if (!firstPoint) return 0;
+    
+    let peak = firstPoint.balance;
     let ulcerSum = 0;
     
     for (const point of equity) {

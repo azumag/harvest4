@@ -41,8 +41,8 @@ describe('Integration Tests', () => {
     });
 
     it('should throw error when API secret is missing', () => {
-      process.env.BB_API_KEY = 'test-api-key';
-      delete process.env.BB_API_SECRET;
+      process.env['BB_API_KEY'] = 'test-api-key';
+      delete process.env['BB_API_SECRET'];
 
       expect(() => createTradingBotConfig()).toThrow(
         'Missing required environment variables: BB_API_KEY and BB_API_SECRET'
@@ -50,8 +50,8 @@ describe('Integration Tests', () => {
     });
 
     it('should throw error when both API credentials are missing', () => {
-      delete process.env.BB_API_KEY;
-      delete process.env.BB_API_SECRET;
+      delete process.env['BB_API_KEY'];
+      delete process.env['BB_API_SECRET'];
 
       expect(() => createTradingBotConfig()).toThrow(
         'Missing required environment variables: BB_API_KEY and BB_API_SECRET'
@@ -59,8 +59,8 @@ describe('Integration Tests', () => {
     });
 
     it('should have correct strategy configuration', () => {
-      process.env.BB_API_KEY = 'test-api-key';
-      process.env.BB_API_SECRET = 'test-api-secret';
+      process.env['BB_API_KEY'] = 'test-api-key';
+      process.env['BB_API_SECRET'] = 'test-api-secret';
 
       const config = createTradingBotConfig();
 
@@ -72,8 +72,8 @@ describe('Integration Tests', () => {
     });
 
     it('should have correct risk management settings', () => {
-      process.env.BB_API_KEY = 'test-api-key';
-      process.env.BB_API_SECRET = 'test-api-secret';
+      process.env['BB_API_KEY'] = 'test-api-key';
+      process.env['BB_API_SECRET'] = 'test-api-secret';
 
       const config = createTradingBotConfig();
 
@@ -85,8 +85,8 @@ describe('Integration Tests', () => {
 
   describe('Application Flow', () => {
     beforeEach(() => {
-      process.env.BB_API_KEY = 'test-api-key';
-      process.env.BB_API_SECRET = 'test-api-secret';
+      process.env['BB_API_KEY'] = 'test-api-key';
+      process.env['BB_API_SECRET'] = 'test-api-secret';
     });
 
     it('should create trading bot with valid configuration', () => {

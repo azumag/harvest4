@@ -187,11 +187,13 @@ describe('PerformanceAnalyzer', () => {
         expect(monthly).toHaveProperty('trades');
         expect(monthly).toHaveProperty('winRate');
         
-        expect(monthly.year).toBeGreaterThan(2020);
-        expect(monthly.month).toBeGreaterThanOrEqual(0);
-        expect(monthly.month).toBeLessThanOrEqual(11);
-        expect(monthly.winRate).toBeGreaterThanOrEqual(0);
-        expect(monthly.winRate).toBeLessThanOrEqual(1);
+        if (monthly) {
+          expect(monthly.year).toBeGreaterThan(2020);
+          expect(monthly.month).toBeGreaterThanOrEqual(0);
+          expect(monthly.month).toBeLessThanOrEqual(11);
+          expect(monthly.winRate).toBeGreaterThanOrEqual(0);
+          expect(monthly.winRate).toBeLessThanOrEqual(1);
+        }
       }
     });
   });

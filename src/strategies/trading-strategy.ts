@@ -85,7 +85,7 @@ export class TradingStrategy {
   }
 
   private shouldBuy(
-    currentPrice: number,
+    _currentPrice: number,
     shortMA: number,
     longMA: number,
     momentum: number,
@@ -101,11 +101,11 @@ export class TradingStrategy {
   }
 
   private shouldSell(
-    currentPrice: number,
+    _currentPrice: number,
     shortMA: number,
     longMA: number,
     momentum: number,
-    volatility: number,
+    _volatility: number,
     volume: number
   ): boolean {
     return (
@@ -130,6 +130,10 @@ export class TradingStrategy {
     const current = this.priceHistory[this.priceHistory.length - 1];
     const previous = this.priceHistory[this.priceHistory.length - 10];
     
+    if (current === undefined || previous === undefined || previous === 0) {
+      return 0;
+    }
+    
     return (current - previous) / previous;
   }
 
@@ -143,7 +147,7 @@ export class TradingStrategy {
     return Math.sqrt(variance) / mean;
   }
 
-  private calculateConfidence(action: 'buy' | 'sell', momentum: number, volatility: number): number {
+  private calculateConfidence(_action: 'buy' | 'sell', momentum: number, volatility: number): number {
     let confidence = Math.abs(momentum) * 10;
     
     // Reduce confidence for high volatility

@@ -108,7 +108,9 @@ export class BacktestEngine {
       if (openBuyPositions.length > 0) {
         // Close the oldest position first
         const positionToClose = openBuyPositions[0];
-        this.closePosition(positionToClose, signal.price, candle.timestamp);
+        if (positionToClose) {
+          this.closePosition(positionToClose, signal.price, candle.timestamp);
+        }
       }
     }
   }
@@ -305,7 +307,10 @@ export class BacktestEngine {
     if (this.equity.length === 0) return 0;
     
     let maxDrawdown = 0;
-    let peak = this.equity[0].balance;
+    const firstEquityPoint = this.equity[0];
+    if (!firstEquityPoint) return 0;
+    
+    let peak = firstEquityPoint.balance;
     
     for (const point of this.equity) {
       if (point.balance > peak) {
@@ -356,13 +361,16 @@ export class BacktestEngine {
     
     // Handle ongoing drawdown
     if (inDrawdown && currentPeriod.start && currentPeriod.trough !== undefined) {
-      periods.push({
-        start: currentPeriod.start,
-        end: this.equity[this.equity.length - 1].timestamp,
-        peak: currentPeriod.peak!,
-        trough: currentPeriod.trough,
-        duration: this.equity[this.equity.length - 1].timestamp - currentPeriod.start
-      });
+      const lastEquityPoint = this.equity[this.equity.length - 1];
+      if (lastEquityPoint) {
+        periods.push({
+          start: currentPeriod.start,
+          end: lastEquityPoint.timestamp,
+          peak: currentPeriod.peak!,
+          trough: currentPeriod.trough,
+          duration: lastEquityPoint.timestamp - currentPeriod.start
+        });
+      }
     }
     
     return periods;
@@ -373,8 +381,12 @@ export class BacktestEngine {
     
     const returns = [];
     for (let i = 1; i < this.equity.length; i++) {
-      const returnRate = (this.equity[i].balance - this.equity[i - 1].balance) / this.equity[i - 1].balance;
-      returns.push(returnRate);
+      const currentPoint = this.equity[i];
+      const previousPoint = this.equity[i - 1];
+      if (currentPoint && previousPoint && previousPoint.balance !== 0) {
+        const returnRate = (currentPoint.balance - previousPoint.balance) / previousPoint.balance;
+        returns.push(returnRate);
+      }
     }
     
     const avgReturn = returns.reduce((sum, ret) => sum + ret, 0) / returns.length;
