@@ -118,7 +118,7 @@ describe('BacktestOrchestrator', () => {
       
       // Check that results are sorted by score
       for (let i = 1; i < results.length; i++) {
-        expect(results[i].score).toBeLessThanOrEqual(results[i-1].score);
+        expect(results[i]?.score).toBeLessThanOrEqual(results[i-1]?.score);
       }
     });
   });
@@ -178,7 +178,7 @@ describe('BacktestOrchestrator', () => {
       
       // Check that results are ranked
       for (let i = 0; i < results.length; i++) {
-        expect(results[i].rank).toBe(i + 1);
+        expect(results[i]?.rank).toBe(i + 1);
       }
       
       // Check result structure
@@ -220,8 +220,8 @@ describe('BacktestOrchestrator', () => {
       
       expect(results).toBeDefined();
       expect(results.length).toBe(2);
-      expect(results[0].name).toBe('Conservative Test');
-      expect(results[1].name).toBe('Aggressive Test');
+      expect(results[0]?.name).toBe('Conservative Test');
+      expect(results[1]?.name).toBe('Aggressive Test');
     });
   });
 

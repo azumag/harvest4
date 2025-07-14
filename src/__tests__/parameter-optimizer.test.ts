@@ -54,7 +54,7 @@ describe('ParameterOptimizer', () => {
       
       // Check that results are sorted by score
       for (let i = 1; i < results.length; i++) {
-        expect(results[i].score).toBeLessThanOrEqual(results[i-1].score);
+        expect(results[i]?.score).toBeLessThanOrEqual(results[i-1]?.score);
       }
       
       // Check result structure
@@ -116,7 +116,7 @@ describe('ParameterOptimizer', () => {
       
       // Check that results are sorted by score
       for (let i = 1; i < results.length; i++) {
-        expect(results[i].score).toBeLessThanOrEqual(results[i-1].score);
+        expect(results[i]?.score).toBeLessThanOrEqual(results[i-1]?.score);
       }
     });
 

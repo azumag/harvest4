@@ -156,8 +156,12 @@ describe('Backtest Integration', () => {
       const gridBest = gridResults[0];
       const geneticBest = geneticResults[0];
       
-      console.log(`Grid search best score: ${gridBest.score.toFixed(4)}`);
-      console.log(`Genetic best score: ${geneticBest.score.toFixed(4)}`);
+      if (gridBest) {
+        console.log(`Grid search best score: ${gridBest.score.toFixed(4)}`);
+      }
+      if (geneticBest) {
+        console.log(`Genetic best score: ${geneticBest.score.toFixed(4)}`);
+      }
       
       const avgDegradation = walkForwardResults.reduce((sum, r) => sum + r.degradation, 0) / walkForwardResults.length;
       console.log(`Average walk-forward degradation: ${(avgDegradation * 100).toFixed(2)}%`);

@@ -1,5 +1,5 @@
 import { BitbankClient } from '../api/bitbank-client';
-import { CandleData, HistoricalDataPoint, DataQuality } from '../types/backtest';
+import { HistoricalDataPoint, DataQuality } from '../types/backtest';
 import { BitbankConfig } from '../types/bitbank';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -93,7 +93,6 @@ export class HistoricalDataManager {
       currentPrice *= (1 + randomFactor + trendFactor);
       
       // Calculate OHLC values
-      const open = currentPrice;
       const high = currentPrice * (1 + Math.random() * 0.01);
       const low = currentPrice * (1 - Math.random() * 0.01);
       const close = currentPrice + (Math.random() - 0.5) * currentPrice * 0.005;
@@ -226,17 +225,22 @@ export class HistoricalDataManager {
     let currentGapStart: number | null = null;
     
     for (let i = 1; i < data.length; i++) {
-      const gap = data[i].timestamp - data[i - 1].timestamp;
+      const currentData = data[i];
+      const previousData = data[i - 1];
+      
+      if (!currentData || !previousData) continue;
+      
+      const gap = currentData.timestamp - previousData.timestamp;
       
       if (gap > expectedInterval * 2) { // Gap larger than 2 intervals
         if (currentGapStart === null) {
-          currentGapStart = data[i - 1].timestamp;
+          currentGapStart = previousData.timestamp;
         }
       } else if (currentGapStart !== null) {
         dataGaps.push({
           start: currentGapStart,
-          end: data[i - 1].timestamp,
-          duration: data[i - 1].timestamp - currentGapStart
+          end: previousData.timestamp,
+          duration: previousData.timestamp - currentGapStart
         });
         currentGapStart = null;
       }

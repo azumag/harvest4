@@ -177,7 +177,7 @@ describe('BacktestEngine', () => {
       
       const trades = result.trades;
       for (let i = 1; i < trades.length; i++) {
-        expect(trades[i].entryTime).toBeGreaterThanOrEqual(trades[i-1].entryTime);
+        expect(trades[i]?.entryTime).toBeGreaterThanOrEqual(trades[i-1]?.entryTime);
       }
     });
 
