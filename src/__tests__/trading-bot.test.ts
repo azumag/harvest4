@@ -5,7 +5,7 @@ import { BitbankClient } from '../api/bitbank-client';
 import { TradingStrategy, TradingStrategyConfig } from '../strategies/trading-strategy';
 import { TechnicalIndicators } from '../utils/technical-indicators';
 import { ProfitCalculator } from '../utils/profit-calculator';
-import { BitbankOrder, TradingPosition, BitbankConfig } from '../types/bitbank';
+import { BitbankOrder, TradingPosition, BitbankConfig, TradingSignal, BitbankTicker } from '../types/bitbank';
 
 
 // Mock the dependencies
@@ -224,7 +224,7 @@ describe('TradingBot', () => {
         status: 'UNFILLED',
       });
 
-      await (bot as TradingBot & { executeSignal: (signal: any) => Promise<void> }).executeSignal(buySignal);
+      await (bot as TradingBot & { executeSignal: (signal: TradingSignal) => Promise<void> }).executeSignal(buySignal);
 
       expect(mockClient.createOrder).toHaveBeenCalledWith({
         pair: config.pair,
@@ -252,7 +252,7 @@ describe('TradingBot', () => {
       botWithPositions.activePositions.set('pos2', {} as TradingPosition);
       botWithPositions.activePositions.set('pos3', {} as TradingPosition);
 
-      await (bot as TradingBot & { executeSignal: (signal: any) => Promise<void> }).executeSignal(buySignal);
+      await (bot as TradingBot & { executeSignal: (signal: TradingSignal) => Promise<void> }).executeSignal(buySignal);
 
       expect(mockClient.createOrder).not.toHaveBeenCalled();
     });
@@ -268,7 +268,7 @@ describe('TradingBot', () => {
 
       mockClient.createOrder.mockRejectedValue(new Error('Order failed'));
 
-      await (bot as TradingBot & { executeSignal: (signal: any) => Promise<void> }).executeSignal(buySignal);
+      await (bot as TradingBot & { executeSignal: (signal: TradingSignal) => Promise<void> }).executeSignal(buySignal);
 
       expect(mockClient.createOrder).toHaveBeenCalled();
       expect(mockProfitCalculator.addPosition).not.toHaveBeenCalled();
@@ -301,7 +301,7 @@ describe('TradingBot', () => {
       mockClient.cancelOrder.mockResolvedValue({} as BitbankOrder);
       mockClient.createOrder.mockResolvedValue({} as BitbankOrder);
 
-      await (bot as TradingBot & { checkStopLossAndTakeProfit: (ticker: any) => Promise<void> }).checkStopLossAndTakeProfit(ticker);
+      await (bot as TradingBot & { checkStopLossAndTakeProfit: (ticker: BitbankTicker) => Promise<void> }).checkStopLossAndTakeProfit(ticker);
 
       expect(mockClient.cancelOrder).toHaveBeenCalledWith(config.pair, 12345);
       expect(mockClient.createOrder).toHaveBeenCalledWith({
@@ -337,7 +337,7 @@ describe('TradingBot', () => {
       mockClient.cancelOrder.mockResolvedValue({} as BitbankOrder);
       mockClient.createOrder.mockResolvedValue({} as BitbankOrder);
 
-      await (bot as TradingBot & { checkStopLossAndTakeProfit: (ticker: any) => Promise<void> }).checkStopLossAndTakeProfit(ticker);
+      await (bot as TradingBot & { checkStopLossAndTakeProfit: (ticker: BitbankTicker) => Promise<void> }).checkStopLossAndTakeProfit(ticker);
 
       expect(mockClient.cancelOrder).toHaveBeenCalledWith(config.pair, 12345);
       expect(mockClient.createOrder).toHaveBeenCalledWith({
