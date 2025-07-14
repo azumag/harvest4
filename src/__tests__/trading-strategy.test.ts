@@ -1,6 +1,14 @@
 import { TradingStrategy, TradingStrategyConfig } from '../strategies/trading-strategy';
 import { BitbankTicker } from '../types/bitbank';
 
+interface TradingStrategyTestable extends TradingStrategy {
+  priceHistory: number[];
+  volumeHistory: number[];
+  calculateMovingAverage: (period: number) => number;
+  calculateMomentum: () => number;
+  calculateVolatility: () => number;
+}
+
 describe('TradingStrategy', () => {
   let strategy: TradingStrategy;
   let config: TradingStrategyConfig;
@@ -16,7 +24,7 @@ describe('TradingStrategy', () => {
     strategy = new TradingStrategy(config);
   });
 
-  const createMockTicker = (price: string, volume: string = '1500'): BitbankTicker => ({
+  const createMockTicker = (price: string, volume = '1500'): BitbankTicker => ({
     pair: 'btc_jpy',
     sell: (parseFloat(price) + 1000).toString(),
     buy: (parseFloat(price) - 1000).toString(),
@@ -36,7 +44,7 @@ describe('TradingStrategy', () => {
       });
 
       // Access private property for testing
-      const priceHistory = (strategy as any).priceHistory;
+      const priceHistory = (strategy as TradingStrategyTestable).priceHistory;
       expect(priceHistory).toHaveLength(5);
       expect(priceHistory[priceHistory.length - 1]).toBe(5040000);
     });
@@ -47,7 +55,7 @@ describe('TradingStrategy', () => {
         strategy.updatePrice(5000000 + i * 1000);
       }
 
-      const priceHistory = (strategy as any).priceHistory;
+      const priceHistory = (strategy as TradingStrategyTestable).priceHistory;
       expect(priceHistory).toHaveLength(20);
       expect(priceHistory[0]).toBe(5005000); // First 5 should be removed
     });
@@ -184,8 +192,8 @@ describe('TradingStrategy', () => {
       const prices = [5000000, 5010000, 5020000, 5030000, 5040000];
       prices.forEach(price => strategy.updatePrice(price));
 
-      const shortMA = (strategy as any).calculateMovingAverage(3);
-      const longMA = (strategy as any).calculateMovingAverage(5);
+      const shortMA = (strategy as TradingStrategyTestable).calculateMovingAverage(3);
+      const longMA = (strategy as TradingStrategyTestable).calculateMovingAverage(5);
 
       expect(shortMA).toBeCloseTo(5030000); // Average of last 3
       expect(longMA).toBeCloseTo(5020000); // Average of all 5
@@ -197,7 +205,7 @@ describe('TradingStrategy', () => {
       
       [...basePrices, ...trendPrices].forEach(price => strategy.updatePrice(price));
 
-      const momentum = (strategy as any).calculateMomentum();
+      const momentum = (strategy as TradingStrategyTestable).calculateMomentum();
       
       // Current (5090000) vs 10 periods ago (5000000)
       const expected = (5090000 - 5000000) / 5000000;
@@ -210,7 +218,7 @@ describe('TradingStrategy', () => {
         prices.forEach(price => strategy.updatePrice(price));
       }
 
-      const volatility = (strategy as any).calculateVolatility();
+      const volatility = (strategy as TradingStrategyTestable).calculateVolatility();
       
       expect(volatility).toBeGreaterThan(0);
       expect(volatility).toBeLessThan(1);

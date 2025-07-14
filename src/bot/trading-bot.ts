@@ -36,12 +36,14 @@ export class TradingBot {
     }
 
     this.isRunning = true;
+    // eslint-disable-next-line no-console
     console.log(`Starting trading bot for ${this.config.pair}`);
     
     try {
       await this.validateConfiguration();
       await this.tradingLoop();
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Trading bot error:', error);
       this.isRunning = false;
       throw error;
@@ -50,12 +52,14 @@ export class TradingBot {
 
   async stop(): Promise<void> {
     this.isRunning = false;
+    // eslint-disable-next-line no-console
     console.log('Trading bot stopped');
     
     // Close all open positions
     await this.closeAllPositions();
     
     // Generate final report
+    // eslint-disable-next-line no-console
     console.log(this.profitCalculator.getPerformanceReport());
   }
 
@@ -63,6 +67,7 @@ export class TradingBot {
     try {
       // Test API connection
       await this.client.getTicker(this.config.pair);
+      // eslint-disable-next-line no-console
       console.log('API connection validated');
       
       // Check balance
@@ -70,8 +75,11 @@ export class TradingBot {
       const jpyBalance = balances.find(b => b.asset === 'jpy');
       const btcBalance = balances.find(b => b.asset === 'btc');
       
+      // eslint-disable-next-line no-console
       console.log('Current balances:');
+      // eslint-disable-next-line no-console
       console.log(`JPY: ${jpyBalance?.free_amount || '0'}`);
+      // eslint-disable-next-line no-console
       console.log(`BTC: ${btcBalance?.free_amount || '0'}`);
       
     } catch (error) {
@@ -85,6 +93,7 @@ export class TradingBot {
         await this.executeTradingCycle();
         await this.sleep(this.config.tradingInterval);
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('Trading cycle error:', error);
         await this.sleep(5000); // Wait 5 seconds before retry
       }
@@ -140,9 +149,11 @@ export class TradingBot {
         this.profitCalculator.addPosition(positionId, position);
         
         this.lastTradeTime = now;
+        // eslint-disable-next-line no-console
         console.log(`Order placed: ${signal.action} ${signal.amount} BTC at ${signal.price} JPY`);
       }
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Order execution error:', error);
     }
   }
@@ -164,12 +175,13 @@ export class TradingBot {
 
       return order.order_id;
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Failed to place order:', error);
       return null;
     }
   }
 
-  private async checkStopLossAndTakeProfit(ticker: any): Promise<void> {
+  private async checkStopLossAndTakeProfit(ticker: BitbankTicker): Promise<void> {
     const currentPrice = parseFloat(ticker.last);
 
     for (const [positionId, position] of this.activePositions) {
@@ -231,11 +243,14 @@ export class TradingBot {
       const trade = this.profitCalculator.closePosition(positionId, exitPrice, Date.now());
       this.activePositions.delete(positionId);
 
+      // eslint-disable-next-line no-console
       console.log(`Position closed: ${reason}`);
       if (trade) {
+        // eslint-disable-next-line no-console
         console.log(`Trade result: ${trade.profit.toFixed(2)} JPY (${(trade.returnRate * 100).toFixed(2)}%)`);
       }
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Failed to close position:', error);
     }
   }
@@ -251,6 +266,7 @@ export class TradingBot {
 
   private logTradingStatus(signal: TradingSignal): void {
     const metrics = this.profitCalculator.calculateProfitMetrics();
+    // eslint-disable-next-line no-console
     console.log(`
 --- Trading Status ---
 Signal: ${signal.action} (${signal.confidence.toFixed(2)} confidence)

@@ -3,6 +3,10 @@ import axios, { AxiosResponse } from 'axios';
 import { BitbankClient } from '../api/bitbank-client';
 import { BitbankConfig, BitbankApiResponse, BitbankTicker } from '../types/bitbank';
 
+interface BitbankClientTestable extends BitbankClient {
+  createAuthHeaders: (path: string, body: string) => Record<string, string>;
+}
+
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
@@ -21,7 +25,7 @@ describe('BitbankClient', () => {
       get: jest.fn(),
       post: jest.fn(),
       defaults: { timeout: 10000 },
-    } as any);
+    } as jest.Mocked<typeof axios>);
 
     client = new BitbankClient(config);
   });
@@ -51,10 +55,10 @@ describe('BitbankClient', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any,
+        config: {} as never,
       };
 
-      const mockAxiosInstance = mockedAxios.create() as any;
+      const mockAxiosInstance = mockedAxios.create() as jest.Mocked<typeof axios>;
       mockAxiosInstance.get.mockResolvedValue(mockResponse);
 
       const result = await client.getTicker('btc_jpy');
@@ -72,10 +76,10 @@ describe('BitbankClient', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any,
+        config: {} as never,
       };
 
-      const mockAxiosInstance = mockedAxios.create() as any;
+      const mockAxiosInstance = mockedAxios.create() as jest.Mocked<typeof axios>;
       mockAxiosInstance.get.mockResolvedValue(mockResponse);
 
       await expect(client.getTicker('btc_jpy')).rejects.toThrow('Failed to get ticker data');
@@ -114,10 +118,10 @@ describe('BitbankClient', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any,
+        config: {} as never,
       };
 
-      const mockAxiosInstance = mockedAxios.create() as any;
+      const mockAxiosInstance = mockedAxios.create() as jest.Mocked<typeof axios>;
       mockAxiosInstance.post.mockResolvedValue(mockResponse);
 
       const result = await client.createOrder(orderRequest);
@@ -153,10 +157,10 @@ describe('BitbankClient', () => {
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: {} as any,
+        config: {} as never,
       };
 
-      const mockAxiosInstance = mockedAxios.create() as any;
+      const mockAxiosInstance = mockedAxios.create() as jest.Mocked<typeof axios>;
       mockAxiosInstance.post.mockResolvedValue(mockResponse);
 
       await expect(client.createOrder(orderRequest)).rejects.toThrow('Failed to create order');
@@ -169,7 +173,7 @@ describe('BitbankClient', () => {
       const body = '{"test": "data"}';
 
       // Access the private method through casting
-      const authHeaders = (client as any).createAuthHeaders(path, body);
+      const authHeaders = (client as BitbankClientTestable).createAuthHeaders(path, body);
 
       expect(authHeaders).toHaveProperty('ACCESS-KEY', config.apiKey);
       expect(authHeaders).toHaveProperty('ACCESS-NONCE');
