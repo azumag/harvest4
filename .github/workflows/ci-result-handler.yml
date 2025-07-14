@@ -1,0 +1,187 @@
+name: CI Result Handler
+
+on:
+  workflow_run:
+    workflows: ["CI/CD Pipeline"]
+    types: [completed]
+
+jobs:
+  handle-pr-ci-result:
+    name: Handle PR CI Result
+    runs-on: ubuntu-latest
+    
+    # PRイベントの場合のみ実行
+    if: github.event.workflow_run.event == 'pull_request'
+    
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      actions: read
+      id-token: write
+    
+    steps:
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          
+      - name: Handle CI Result
+        id: handle-ci-result
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            // workflow_runイベントからPR情報を取得する改善された方法
+            let prNumber = null;
+            
+            // workflow_runイベントのpull_requestsから直接取得を試行
+            if (context.payload.workflow_run.pull_requests && context.payload.workflow_run.pull_requests.length > 0) {
+              prNumber = context.payload.workflow_run.pull_requests[0].number;
+              console.log(`Found PR #${prNumber} from workflow_run.pull_requests`);
+            } else {
+              // フォールバック: ブランチ名でPRを検索
+              const headBranch = context.payload.workflow_run.head_branch;
+              const headSha = context.payload.workflow_run.head_sha;
+              
+              console.log(`Searching for PR with head branch: ${headBranch}, sha: ${headSha}`);
+              
+              const { data: pullRequests } = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                head: `${context.repo.owner}:${headBranch}`,
+                state: 'open'
+              });
+              
+              if (pullRequests.length === 0) {
+                console.log('No open PR found for this branch');
+                return;
+              }
+              
+              prNumber = pullRequests[0].number;
+              console.log(`Found PR #${prNumber} via branch search`);
+            }
+            const conclusion = context.payload.workflow_run.conclusion;
+            console.log(`Found PR #${prNumber} with CI conclusion: ${conclusion}`);
+            
+            if (conclusion === 'failure') {
+              // CI失敗時の処理
+              console.log('CI failed, updating labels...');
+              
+              // ci-passedとreview-fixedラベルを削除
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                name: 'ci-passed'
+              }).catch(e => console.log('ci-passed label not found or already removed'));
+              
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                name: 'review-fixed'
+              }).catch(e => console.log('review-fixed label not found or already removed'));
+              
+              // CI失敗ラベルを追加
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                labels: ['ci-failure']
+              });
+              
+              console.log(`Added ci-failure label to PR #${prNumber}`);
+              
+            } else if (conclusion === 'success') {
+              // CI成功時の処理
+              console.log('CI succeeded, updating labels...');
+              
+              // ci-failureラベルを削除
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                name: 'ci-failure'
+              }).catch(e => console.log('ci-failure label not found or already removed'));
+              
+              // CI成功ラベルを追加
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                labels: ['ci-passed']
+              });
+              
+              console.log(`Added ci-passed label to PR #${prNumber}`);
+              
+            } else {
+              console.log(`CI concluded with status: ${conclusion}, no label changes needed`);
+            }
+
+  handle-main-ci-failure:
+    name: Handle Main CI Failure
+    runs-on: ubuntu-latest
+    
+    # mainブランチでpushイベントによるCI失敗の場合のみ実行
+    if: |
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.conclusion == 'failure'
+    
+    permissions:
+      contents: read
+      issues: write
+    
+    steps:
+      - name: Create Issue for Main CI Failure
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          script: |
+            const runUrl = context.payload.workflow_run.html_url;
+            const commitSha = context.payload.workflow_run.head_sha.substring(0, 7);
+            const commitMessage = context.payload.workflow_run.head_commit.message.split('\n')[0];
+            const author = context.payload.workflow_run.head_commit.author.name;
+            const timestamp = new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+            
+            // 24時間以内の類似Issueをチェック
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            const { data: existingIssues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'ci-failure,main-branch',
+              state: 'open',
+              since: yesterday.toISOString()
+            });
+            
+            if (existingIssues.length > 0) {
+              console.log('Similar issue exists within 24h, skipping creation');
+              return;
+            }
+            
+            const issueTitle = `🚨 Main CI Failure: ${commitMessage}`;
+            const issueBody = `## Main Branch CI Failure
+            
+            **失敗時刻**: ${timestamp}
+            **コミット**: \`${commitSha}\` by ${author}
+            **ワークフロー**: [実行結果を確認](${runUrl})
+            
+            ### 対応が必要
+            - [ ] 失敗原因の確認
+            - [ ] 修正の実装
+            - [ ] テストの実行
+            
+            @claude この CI 失敗を分析し、修正して, PRを作成してください。`;
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: issueTitle,
+              body: issueBody,
+              labels: ['ci-failure', 'main-branch', 'bug']
+            });
