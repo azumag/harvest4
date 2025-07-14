@@ -7,15 +7,6 @@ import { TechnicalIndicators } from '../utils/technical-indicators';
 import { ProfitCalculator } from '../utils/profit-calculator';
 import { BitbankTicker, BitbankOrder, TradingPosition, TradingSignal, BitbankConfig } from '../types/bitbank';
 
-// Interface for accessing private members in tests
-interface TradingBotPrivateMembers {
-  tradingLoop: () => Promise<void>;
-  validateConfiguration: () => Promise<void>;
-  executeSignal: (signal: TradingSignal) => Promise<void>;
-  checkStopLossAndTakeProfit: (ticker: BitbankTicker) => Promise<void>;
-  activePositions: Map<string, TradingPosition>;
-  isRunning: boolean;
-}
 
 // Mock the dependencies
 jest.mock('../api/bitbank-client');
