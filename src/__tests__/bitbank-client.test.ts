@@ -3,10 +3,6 @@ import axios, { AxiosResponse, AxiosInstance, InternalAxiosRequestConfig } from 
 import { BitbankClient } from '../api/bitbank-client';
 import { BitbankConfig, BitbankApiResponse, BitbankTicker, BitbankOrder } from '../types/bitbank';
 
-// Interface for accessing private members in tests
-interface BitbankClientPrivateMembers {
-  createAuthHeaders: (path: string, body?: string) => Record<string, string>;
-}
 
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
@@ -185,7 +181,7 @@ describe('BitbankClient', () => {
       const body = '{"test": "data"}';
 
       // Access the private method through casting
-      const authHeaders = (client as any).createAuthHeaders(path, body);
+      const authHeaders = (client as BitbankClient & { createAuthHeaders: (path: string, body?: string) => Record<string, string> }).createAuthHeaders(path, body);
 
       expect(authHeaders).toHaveProperty('ACCESS-KEY', config.apiKey);
       expect(authHeaders).toHaveProperty('ACCESS-NONCE');
