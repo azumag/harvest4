@@ -23,7 +23,7 @@ describe('BitbankClient', () => {
       get: jest.fn(),
       post: jest.fn(),
       defaults: { timeout: 10000 },
-    } as jest.Mocked<AxiosInstance>;
+    } as unknown as jest.Mocked<AxiosInstance>;
     
     mockedAxios.create.mockReturnValue(mockAxiosInstance);
 
@@ -181,7 +181,7 @@ describe('BitbankClient', () => {
       const body = '{"test": "data"}';
 
       // Access the private method through casting
-      const authHeaders = (client as BitbankClient & { createAuthHeaders: (path: string, body?: string) => Record<string, string> }).createAuthHeaders(path, body);
+      const authHeaders = (client as any).createAuthHeaders(path, body);
 
       expect(authHeaders).toHaveProperty('ACCESS-KEY', config.apiKey);
       expect(authHeaders).toHaveProperty('ACCESS-NONCE');
