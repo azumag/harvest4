@@ -5,8 +5,8 @@ import * as cron from 'node-cron';
 config();
 
 const createTradingBotConfig = (): TradingBotConfig => {
-  const apiKey = process.env.BB_API_KEY;
-  const apiSecret = process.env.BB_API_SECRET;
+  const apiKey = process.env['BB_API_KEY'];
+  const apiSecret = process.env['BB_API_SECRET'];
 
   if (!apiKey || !apiSecret) {
     throw new Error('Missing required environment variables: BB_API_KEY and BB_API_SECRET');
@@ -28,6 +28,10 @@ const createTradingBotConfig = (): TradingBotConfig => {
       minProfitMargin: 0.01, // 1% minimum profit margin
       maxTradeAmount: 10000, // 10,000 JPY per trade
       riskTolerance: 0.8, // 80% risk tolerance
+      rsiOverbought: 70,
+      rsiOversold: 30,
+      useDivergence: true,
+      useMultiTimeframe: true,
     },
   };
 };
@@ -88,7 +92,7 @@ const scheduleBot = (): void => {
 
 // Main execution
 if (require.main === module) {
-  const mode = process.env.NODE_ENV || 'development';
+  const mode = process.env['NODE_ENV'] || 'development';
   
   if (mode === 'production') {
     // In production (Cloud Run), run continuously

@@ -148,12 +148,16 @@ export class TradingBot {
   }
 
   private async placeOrder(signal: TradingSignal): Promise<number | null> {
+    if (signal.action === 'hold') {
+      throw new Error('Cannot place order for hold signal');
+    }
+    
     try {
       const order = await this.client.createOrder({
         pair: this.config.pair,
         amount: signal.amount.toString(),
         price: signal.price.toString(),
-        side: signal.action,
+        side: signal.action as 'buy' | 'sell',
         type: 'limit',
       });
 

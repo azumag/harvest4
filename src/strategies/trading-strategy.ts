@@ -1,4 +1,12 @@
 import { BitbankTicker, TradingSignal } from '../types/bitbank';
+import { 
+  TechnicalIndicators, 
+  RSIResult, 
+  MACDResult, 
+  BollingerBandsResult, 
+  VolumeIndicatorsResult,
+  MultiTimeframeSignal 
+} from '../utils/technical-indicators';
 
 export interface TradingStrategyConfig {
   buyThreshold: number;
@@ -6,72 +14,83 @@ export interface TradingStrategyConfig {
   minProfitMargin: number;
   maxTradeAmount: number;
   riskTolerance: number;
+  rsiOverbought: number;
+  rsiOversold: number;
+  useDivergence: boolean;
+  useMultiTimeframe: boolean;
 }
 
 export class TradingStrategy {
   private config: TradingStrategyConfig;
-  private priceHistory: number[] = [];
-  private readonly HISTORY_SIZE = 20;
+  private technicalIndicators: TechnicalIndicators;
 
   constructor(config: TradingStrategyConfig) {
-    this.config = config;
+    this.config = {
+      ...config,
+      rsiOverbought: config.rsiOverbought || 70,
+      rsiOversold: config.rsiOversold || 30,
+      useDivergence: config.useDivergence !== false,
+      useMultiTimeframe: config.useMultiTimeframe !== false,
+    };
+    this.technicalIndicators = new TechnicalIndicators();
   }
 
-  updatePrice(price: number): void {
-    this.priceHistory.push(price);
-    if (this.priceHistory.length > this.HISTORY_SIZE) {
-      this.priceHistory.shift();
-    }
+  updatePrice(price: number, volume: number = 1000): void {
+    this.technicalIndicators.updateData(price, volume);
   }
 
   generateSignal(ticker: BitbankTicker): TradingSignal {
     const currentPrice = parseFloat(ticker.last);
-    this.updatePrice(currentPrice);
+    const volume = parseFloat(ticker.vol);
+    this.updatePrice(currentPrice, volume);
 
-    if (this.priceHistory.length < 10) {
+    const signal = this.analyzeAdvancedMarketConditions(ticker);
+    return this.applyAdvancedRiskManagement(signal);
+  }
+
+  private analyzeAdvancedMarketConditions(ticker: BitbankTicker): TradingSignal {
+    const currentPrice = parseFloat(ticker.last);
+    const volume = parseFloat(ticker.vol);
+
+    const rsi = this.technicalIndicators.calculateRSI();
+    const macd = this.technicalIndicators.calculateMACD();
+    const bollinger = this.technicalIndicators.calculateBollingerBands();
+    const volumeIndicators = this.technicalIndicators.calculateVolumeIndicators();
+    const multiTimeframe = this.config.useMultiTimeframe ? 
+      this.technicalIndicators.analyzeMultiTimeframe() : [];
+    const divergence = this.config.useDivergence ? 
+      this.technicalIndicators.getDivergenceSignals() : 
+      { bullishDivergence: false, bearishDivergence: false };
+
+    if (!rsi || !macd || !bollinger || !volumeIndicators) {
       return {
         action: 'hold',
         confidence: 0,
         price: currentPrice,
         amount: 0,
-        reason: 'Insufficient price history',
+        reason: 'Insufficient data for advanced analysis',
       };
     }
 
-    const signal = this.analyzeMarketConditions(ticker);
-    return this.applyRiskManagement(signal);
-  }
+    const signals = this.evaluateAllSignals(
+      rsi, macd, bollinger, volumeIndicators, multiTimeframe, divergence, currentPrice, volume
+    );
 
-  private analyzeMarketConditions(ticker: BitbankTicker): TradingSignal {
-    const currentPrice = parseFloat(ticker.last);
-    const volume = parseFloat(ticker.vol);
-    
-    // Calculate moving averages
-    const shortMA = this.calculateMovingAverage(5);
-    const longMA = this.calculateMovingAverage(20);
-    
-    // Calculate price momentum
-    const momentum = this.calculateMomentum();
-    
-    // Calculate volatility
-    const volatility = this.calculateVolatility();
-    
-    // Determine signal based on multiple indicators
-    if (this.shouldBuy(currentPrice, shortMA, longMA, momentum, volatility, volume)) {
+    if (signals.buySignals >= 3 && signals.sellSignals === 0) {
       return {
         action: 'buy',
-        confidence: this.calculateConfidence('buy', momentum, volatility),
+        confidence: this.calculateAdvancedConfidence(signals, 'buy'),
         price: currentPrice,
-        amount: this.calculateTradeAmount(currentPrice, volatility),
-        reason: 'Bullish trend detected: Short MA > Long MA, positive momentum',
+        amount: this.calculateAdvancedTradeAmount(currentPrice, bollinger, volumeIndicators),
+        reason: this.generateSignalReason(signals, 'buy'),
       };
-    } else if (this.shouldSell(currentPrice, shortMA, longMA, momentum, volatility, volume)) {
+    } else if (signals.sellSignals >= 3 && signals.buySignals === 0) {
       return {
         action: 'sell',
-        confidence: this.calculateConfidence('sell', momentum, volatility),
+        confidence: this.calculateAdvancedConfidence(signals, 'sell'),
         price: currentPrice,
-        amount: this.calculateTradeAmount(currentPrice, volatility),
-        reason: 'Bearish trend detected: Short MA < Long MA, negative momentum',
+        amount: this.calculateAdvancedTradeAmount(currentPrice, bollinger, volumeIndicators),
+        reason: this.generateSignalReason(signals, 'sell'),
       };
     }
 
@@ -80,110 +99,158 @@ export class TradingStrategy {
       confidence: 0.5,
       price: currentPrice,
       amount: 0,
-      reason: 'No clear trend detected',
+      reason: `Mixed signals: ${signals.buySignals} buy, ${signals.sellSignals} sell`,
     };
   }
 
-  private shouldBuy(
+  private evaluateAllSignals(
+    rsi: RSIResult,
+    macd: MACDResult,
+    bollinger: BollingerBandsResult,
+    volumeIndicators: VolumeIndicatorsResult,
+    multiTimeframe: MultiTimeframeSignal[],
+    divergence: { bullishDivergence: boolean; bearishDivergence: boolean },
     currentPrice: number,
-    shortMA: number,
-    longMA: number,
-    momentum: number,
-    volatility: number,
     volume: number
-  ): boolean {
-    return (
-      shortMA > longMA && // Upward trend
-      momentum > this.config.buyThreshold && // Positive momentum
-      volatility < 0.1 && // Low volatility for safer entry
-      volume > 1000 // Sufficient volume
-    );
-  }
+  ): { buySignals: number; sellSignals: number; reasons: string[] } {
+    let buySignals = 0;
+    let sellSignals = 0;
+    const reasons: string[] = [];
 
-  private shouldSell(
-    currentPrice: number,
-    shortMA: number,
-    longMA: number,
-    momentum: number,
-    volatility: number,
-    volume: number
-  ): boolean {
-    return (
-      shortMA < longMA && // Downward trend
-      momentum < -this.config.sellThreshold && // Negative momentum
-      volume > 1000 // Sufficient volume
-    );
-  }
-
-  private calculateMovingAverage(period: number): number {
-    if (this.priceHistory.length < period) {
-      return this.priceHistory[this.priceHistory.length - 1] || 0;
+    // RSI Analysis
+    if (rsi.oversold) {
+      buySignals++;
+      reasons.push('RSI oversold');
+    } else if (rsi.overbought) {
+      sellSignals++;
+      reasons.push('RSI overbought');
     }
+
+    // MACD Analysis
+    if (macd.bullishCrossover && macd.macd > macd.signal) {
+      buySignals++;
+      reasons.push('MACD bullish crossover');
+    } else if (macd.bearishCrossover && macd.macd < macd.signal) {
+      sellSignals++;
+      reasons.push('MACD bearish crossover');
+    }
+
+    // Bollinger Bands Analysis
+    if (currentPrice <= bollinger.lower && !bollinger.squeeze) {
+      buySignals++;
+      reasons.push('Price at Bollinger lower band');
+    } else if (currentPrice >= bollinger.upper && !bollinger.squeeze) {
+      sellSignals++;
+      reasons.push('Price at Bollinger upper band');
+    }
+
+    // Volume Analysis
+    if (currentPrice > volumeIndicators.vwap && volume > 1000) {
+      buySignals++;
+      reasons.push('Price above VWAP with volume');
+    } else if (currentPrice < volumeIndicators.vwap && volume > 1000) {
+      sellSignals++;
+      reasons.push('Price below VWAP with volume');
+    }
+
+    // Multi-timeframe Analysis
+    const bullishTimeframes = multiTimeframe.filter(tf => tf.trend === 'bullish').length;
+    const bearishTimeframes = multiTimeframe.filter(tf => tf.trend === 'bearish').length;
     
-    const sum = this.priceHistory.slice(-period).reduce((a, b) => a + b, 0);
-    return sum / period;
+    if (bullishTimeframes >= 3) {
+      buySignals++;
+      reasons.push('Multi-timeframe bullish alignment');
+    } else if (bearishTimeframes >= 3) {
+      sellSignals++;
+      reasons.push('Multi-timeframe bearish alignment');
+    }
+
+    // Divergence Analysis
+    if (divergence.bullishDivergence) {
+      buySignals++;
+      reasons.push('Bullish divergence detected');
+    } else if (divergence.bearishDivergence) {
+      sellSignals++;
+      reasons.push('Bearish divergence detected');
+    }
+
+    return { buySignals, sellSignals, reasons };
   }
 
-  private calculateMomentum(): number {
-    if (this.priceHistory.length < 10) return 0;
+  private calculateAdvancedConfidence(
+    signals: { buySignals: number; sellSignals: number },
+    action: 'buy' | 'sell'
+  ): number {
+    const totalSignals = signals.buySignals + signals.sellSignals;
+    const actionSignals = action === 'buy' ? signals.buySignals : signals.sellSignals;
     
-    const current = this.priceHistory[this.priceHistory.length - 1];
-    const previous = this.priceHistory[this.priceHistory.length - 10];
+    if (totalSignals === 0) return 0.5;
     
-    return (current - previous) / previous;
+    const baseConfidence = actionSignals / Math.max(totalSignals, 6);
+    return Math.max(0.6, Math.min(0.95, baseConfidence));
   }
 
-  private calculateVolatility(): number {
-    if (this.priceHistory.length < 10) return 0;
-    
-    const mean = this.calculateMovingAverage(10);
-    const variance = this.priceHistory.slice(-10)
-      .reduce((sum, price) => sum + Math.pow(price - mean, 2), 0) / 10;
-    
-    return Math.sqrt(variance) / mean;
-  }
-
-  private calculateConfidence(action: 'buy' | 'sell', momentum: number, volatility: number): number {
-    let confidence = Math.abs(momentum) * 10;
-    
-    // Reduce confidence for high volatility
-    confidence *= (1 - volatility);
-    
-    // Ensure confidence is between 0 and 1
-    return Math.max(0, Math.min(1, confidence));
-  }
-
-  private calculateTradeAmount(price: number, volatility: number): number {
-    // Adjust trade amount based on volatility and risk tolerance
+  private calculateAdvancedTradeAmount(
+    price: number,
+    bollinger: BollingerBandsResult,
+    volumeIndicators: VolumeIndicatorsResult
+  ): number {
     const baseAmount = this.config.maxTradeAmount / price;
-    const volatilityAdjustment = 1 - Math.min(volatility * 2, 0.5);
     
-    return baseAmount * volatilityAdjustment * this.config.riskTolerance;
+    // Adjust for volatility (bandwidth)
+    const volatilityAdjustment = 1 - Math.min(bollinger.bandwidth * 2, 0.5);
+    
+    // Adjust for volume
+    const volumeAdjustment = volumeIndicators.volumeRateOfChange > 0 ? 1.1 : 0.9;
+    
+    return baseAmount * volatilityAdjustment * volumeAdjustment * this.config.riskTolerance;
   }
 
-  private applyRiskManagement(signal: TradingSignal): TradingSignal {
+  private generateSignalReason(
+    signals: { buySignals: number; sellSignals: number; reasons: string[] },
+    action: 'buy' | 'sell'
+  ): string {
+    const actionReasons = signals.reasons.filter(reason => 
+      (action === 'buy' && (reason.includes('oversold') || reason.includes('bullish') || reason.includes('lower'))) ||
+      (action === 'sell' && (reason.includes('overbought') || reason.includes('bearish') || reason.includes('upper')))
+    );
+    
+    return `Advanced ${action} signal: ${actionReasons.join(', ')}`;
+  }
+
+  private applyAdvancedRiskManagement(signal: TradingSignal): TradingSignal {
     if (signal.action === 'hold') {
       return signal;
     }
 
     // Apply minimum confidence threshold
-    if (signal.confidence < 0.6) {
+    if (signal.confidence < 0.7) {
       return {
         ...signal,
         action: 'hold',
         amount: 0,
-        reason: `${signal.reason} - Confidence too low: ${signal.confidence}`,
+        reason: `${signal.reason} - Confidence too low: ${signal.confidence.toFixed(2)}`,
       };
     }
 
     // Apply minimum profit margin check
     const expectedProfit = signal.amount * signal.price * this.config.minProfitMargin;
-    if (expectedProfit < 100) { // Minimum 100 JPY profit
+    if (expectedProfit < 100) {
       return {
         ...signal,
         action: 'hold',
         amount: 0,
-        reason: `${signal.reason} - Expected profit too low: ${expectedProfit} JPY`,
+        reason: `${signal.reason} - Expected profit too low: ${expectedProfit.toFixed(0)} JPY`,
+      };
+    }
+
+    // Apply maximum position size
+    const maxAmount = this.config.maxTradeAmount / signal.price;
+    if (signal.amount > maxAmount) {
+      return {
+        ...signal,
+        amount: maxAmount,
+        reason: `${signal.reason} - Amount capped at maximum`,
       };
     }
 

@@ -37,6 +37,10 @@ describe('TradingBot', () => {
         minProfitMargin: 0.01,
         maxTradeAmount: 10000,
         riskTolerance: 0.8,
+        rsiOverbought: 70,
+        rsiOversold: 30,
+        useDivergence: true,
+        useMultiTimeframe: true,
       },
     };
 
@@ -143,8 +147,7 @@ describe('TradingBot', () => {
 
     it('should throw error if already running', async () => {
       // Mock the trading loop to prevent infinite running
-      const originalTradingLoop = (bot as any).tradingLoop;
-      (bot as any).tradingLoop = jest.fn().mockResolvedValue(undefined);
+      (bot as any).tradingLoop = jest.fn();
 
       await bot.start();
       
@@ -158,7 +161,7 @@ describe('TradingBot', () => {
       validateSpy.mockResolvedValue(undefined);
 
       // Mock the trading loop to prevent infinite running
-      (bot as any).tradingLoop = jest.fn().mockResolvedValue(undefined);
+      (bot as any).tradingLoop = jest.fn();
 
       await bot.start();
 
