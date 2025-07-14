@@ -1,0 +1,64 @@
+name: Claude CI Fix
+
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  claude-ci-fix:
+    name: Claude CI Fix
+    runs-on: ubuntu-latest
+    
+    # ci-failure ラベルが付けられた時のみ実行
+    if: github.event.action == 'labeled' && github.event.label.name == 'ci-failure'
+    
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    
+    steps:
+      - name: Remove ci-failure label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.removeLabel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              name: 'ci-failure'
+            });
+            console.log('Removed ci-failure label');
+            
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Run Claude Code for CI Fix
+        id: claude
+        uses: anthropics/claude-code-action@beta
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github-token: ${{ steps.app-token.outputs.token }}
+          
+          additional_permissions: |
+            actions: read
+          
+          direct_prompt: |
+            CIが失敗しました。PR #${{ github.event.pull_request.number }} の CI 失敗を修正してください：
+            
+            - ワークフロー結果を確認し、失敗の原因を分析してください
+            - 必要な修正を行ってください  
+            - 修正後は適切なテストを実行してください
+            - 修正が完了したらコミットしてください
