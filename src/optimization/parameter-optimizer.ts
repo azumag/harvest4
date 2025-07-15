@@ -3,6 +3,7 @@ import { TradingStrategyConfig } from '../strategies/trading-strategy';
 import {
   HistoricalDataPoint,
   BacktestConfig,
+  BacktestResult,
   OptimizationConfig,
   OptimizationParameter,
   OptimizationResult,
@@ -211,7 +212,7 @@ export class ParameterOptimizer {
         results.push({
           parameters: individual,
           fitness: -Infinity,
-          backtest: {} as any,
+          backtest: {} as BacktestResult,
           metrics: {
             return: -Infinity,
             sharpeRatio: -Infinity,
@@ -325,7 +326,7 @@ export class ParameterOptimizer {
   }
 
   private calculateFitness(
-    result: any,
+    result: BacktestResult,
     fitnessFunction: 'return' | 'sharpe' | 'calmar' | 'profit_factor' | 'composite'
   ): number {
     switch (fitnessFunction) {
@@ -344,7 +345,7 @@ export class ParameterOptimizer {
     }
   }
 
-  private calculateCompositeFitness(result: any): number {
+  private calculateCompositeFitness(result: BacktestResult): number {
     const returnScore = Math.max(0, result.totalReturnPercent) / 100;
     const sharpeScore = Math.max(0, result.sharpeRatio) / 3;
     const drawdownPenalty = Math.max(0, result.maxDrawdownPercent) / 100;
@@ -389,7 +390,6 @@ export class ParameterOptimizer {
       const bestParameters = optimizationResults[0].parameters;
       const inSampleResult = optimizationResults[0].backtest;
       
-      const testOptimizer = new ParameterOptimizer(testData, this.backtestConfig);
       const testStrategyConfig = { ...baseStrategy, ...bestParameters };
       const testBacktest = new BacktestEngine(this.backtestConfig, testStrategyConfig);
       const outOfSampleResult = await testBacktest.runBacktest(testData);
@@ -422,16 +422,16 @@ export class ParameterOptimizer {
     };
   }
 
-  private calculateDegradation(inSample: any, outOfSample: any): number {
+  private calculateDegradation(inSample: BacktestResult, outOfSample: BacktestResult): number {
     if (inSample.totalReturnPercent === 0) return 0;
     return ((inSample.totalReturnPercent - outOfSample.totalReturnPercent) / Math.abs(inSample.totalReturnPercent)) * 100;
   }
 
-  private calculateOverallMetrics(segments: WalkForwardSegment[]): any {
+  private calculateOverallMetrics(segments: WalkForwardSegment[]): Record<string, number> {
     const outOfSampleResults = segments.map(s => s.outOfSampleResult);
     
     const totalReturn = outOfSampleResults.reduce((sum, r) => sum + r.totalReturnPercent, 0);
-    const averageReturn = totalReturn / outOfSampleResults.length;
+    // const averageReturn = totalReturn / outOfSampleResults.length;
     
     const returns = outOfSampleResults.map(r => r.totalReturnPercent / 100);
     const meanReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
@@ -525,7 +525,7 @@ export class ParameterOptimizer {
     
     for (const result of topResults) {
       const strategyConfig = { ...result.parameters };
-      const backtest = new BacktestEngine(this.backtestConfig, strategyConfig as any);
+      const backtest = new BacktestEngine(this.backtestConfig, strategyConfig as TradingStrategyConfig);
       
       backtest.runBacktest(validationData).then(validationResult => {
         validationResults.push({

@@ -278,7 +278,7 @@ export class PerformanceAnalyzer {
     const current = prices[prices.length - 1];
     const previous = prices[prices.length - 1 - period];
     
-    return previous > 0 ? (current - previous) / previous : 0;
+    return previous && current && previous > 0 ? (current - previous) / previous : 0;
   }
 
   private createSubResult(trades: BacktestTrade[], originalResult: BacktestResult): BacktestResult {
@@ -342,14 +342,14 @@ export class PerformanceAnalyzer {
     };
   }
 
-  private calculateAverageDrawdown(drawdownCurve: any[]): number {
+  private calculateAverageDrawdown(drawdownCurve: DrawdownPoint[]): number {
     const drawdowns = drawdownCurve.filter(d => d.drawdownPercent > 0);
     return drawdowns.length > 0 
       ? drawdowns.reduce((sum, d) => sum + d.drawdownPercent, 0) / drawdowns.length 
       : 0;
   }
 
-  private calculateDrawdownRecoveryTime(drawdownCurve: any[]): number {
+  private calculateDrawdownRecoveryTime(drawdownCurve: DrawdownPoint[]): number {
     let maxRecoveryTime = 0;
     let currentRecoveryStart = 0;
     let inDrawdown = false;
@@ -389,7 +389,7 @@ export class PerformanceAnalyzer {
     return Math.sqrt(downsideVariance);
   }
 
-  private calculateBeta(result: BacktestResult): number {
+  private calculateBeta(_result: BacktestResult): number {
     // Simplified beta calculation (would need benchmark data for accurate calculation)
     return 1.0;
   }

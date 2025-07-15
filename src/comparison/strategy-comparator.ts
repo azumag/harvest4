@@ -4,6 +4,7 @@ import { TradingStrategyConfig } from '../strategies/trading-strategy';
 import {
   HistoricalDataPoint,
   BacktestConfig,
+  BacktestResult,
   StrategyComparison,
   StrategyPerformance,
   StrategyRanking,
@@ -12,7 +13,7 @@ import {
   MonteCarloResult,
   SensitivityAnalysis,
   PerformanceMetrics,
-  MarketConditionPerformance
+  EquityPoint
 } from '../types/backtest';
 
 export class StrategyComparator {
@@ -29,13 +30,9 @@ export class StrategyComparator {
   async compareStrategies(
     strategies: Array<{ name: string; config: TradingStrategyConfig }>
   ): Promise<StrategyComparison> {
-    console.log(`Comparing ${strategies.length} strategies...`);
-    
     const strategyPerformances: StrategyPerformance[] = [];
     
     for (const strategy of strategies) {
-      console.log(`Backtesting strategy: ${strategy.name}`);
-      
       const backtest = new BacktestEngine(this.backtestConfig, strategy.config);
       const result = await backtest.runBacktest(this.data);
       
@@ -84,7 +81,7 @@ export class StrategyComparator {
     return correlation;
   }
 
-  private calculateDailyReturns(equityCurve: any[]): number[] {
+  private calculateDailyReturns(equityCurve: EquityPoint[]): number[] {
     const returns: number[] = [];
     
     for (let i = 1; i < equityCurve.length; i++) {
@@ -121,7 +118,7 @@ export class StrategyComparator {
   private rankStrategies(strategies: StrategyPerformance[]): StrategyRanking[] {
     const rankings: StrategyRanking[] = [];
     
-    strategies.forEach((strategy, index) => {
+    strategies.forEach((strategy, _index) => {
       const returnScore = this.normalizeScore(strategy.metrics.totalReturn, strategies.map(s => s.metrics.totalReturn));
       const riskScore = 1 - this.normalizeScore(strategy.metrics.maxDrawdown, strategies.map(s => s.metrics.maxDrawdown));
       const consistencyScore = this.normalizeScore(strategy.metrics.winRate, strategies.map(s => s.metrics.winRate));
@@ -160,7 +157,6 @@ export class StrategyComparator {
   }
 
   private calculateRiskComparison(strategies: StrategyPerformance[]): RiskComparison {
-    const n = strategies.length;
     const correlationMatrix = this.calculateCorrelationMatrix(strategies);
     
     const individualRisks = strategies.map(s => s.metrics.maxDrawdown);
@@ -466,7 +462,7 @@ export class StrategyComparator {
         sharpeRatio,
         totalTrades: 1,
         winRate: totalReturn > 0 ? 100 : 0
-      } as any,
+      } as BacktestResult,
       marketConditionPerformance: []
     };
   }
@@ -482,9 +478,6 @@ export class StrategyComparator {
   }
 
   private calculateInformationRatio(strategy: StrategyPerformance, benchmark: StrategyPerformance): number {
-    const strategyReturns = this.calculateDailyReturns(strategy.backtest.equityCurve);
-    const benchmarkReturns = this.calculateDailyReturns(benchmark.backtest.equityCurve);
-    
     const trackingError = this.calculateTrackingError(strategy, benchmark);
     const excessReturn = strategy.metrics.totalReturn - benchmark.metrics.totalReturn;
     
