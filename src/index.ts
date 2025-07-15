@@ -5,8 +5,8 @@ import * as cron from 'node-cron';
 config();
 
 const createTradingBotConfig = (): TradingBotConfig => {
-  const apiKey = process.env.BB_API_KEY;
-  const apiSecret = process.env.BB_API_SECRET;
+  const apiKey = process.env['BB_API_KEY'];
+  const apiSecret = process.env['BB_API_SECRET'];
 
   if (!apiKey || !apiSecret) {
     throw new Error('Missing required environment variables: BB_API_KEY and BB_API_SECRET');
@@ -88,7 +88,7 @@ const scheduleBot = (): void => {
 
 // Main execution
 if (require.main === module) {
-  const mode = process.env.NODE_ENV || 'development';
+  const mode = process.env['NODE_ENV'] || 'development';
   
   if (mode === 'production') {
     // In production (Cloud Run), run continuously
