@@ -57,18 +57,18 @@ export class TradingStrategy {
     const volatility = this.calculateVolatility();
     
     // Determine signal based on multiple indicators
-    if (this.shouldBuy(currentPrice, shortMA, longMA, momentum, volatility, volume)) {
+    if (this.shouldBuy(shortMA, longMA, momentum, volatility, volume)) {
       return {
         action: 'buy',
-        confidence: this.calculateConfidence('buy', momentum, volatility),
+        confidence: this.calculateConfidence(momentum, volatility),
         price: currentPrice,
         amount: this.calculateTradeAmount(currentPrice, volatility),
         reason: 'Bullish trend detected: Short MA > Long MA, positive momentum',
       };
-    } else if (this.shouldSell(currentPrice, shortMA, longMA, momentum, volatility, volume)) {
+    } else if (this.shouldSell(shortMA, longMA, momentum, volume)) {
       return {
         action: 'sell',
-        confidence: this.calculateConfidence('sell', momentum, volatility),
+        confidence: this.calculateConfidence(momentum, volatility),
         price: currentPrice,
         amount: this.calculateTradeAmount(currentPrice, volatility),
         reason: 'Bearish trend detected: Short MA < Long MA, negative momentum',
@@ -85,7 +85,6 @@ export class TradingStrategy {
   }
 
   private shouldBuy(
-    currentPrice: number,
     shortMA: number,
     longMA: number,
     momentum: number,
@@ -101,11 +100,9 @@ export class TradingStrategy {
   }
 
   private shouldSell(
-    currentPrice: number,
     shortMA: number,
     longMA: number,
     momentum: number,
-    volatility: number,
     volume: number
   ): boolean {
     return (
@@ -130,6 +127,8 @@ export class TradingStrategy {
     const current = this.priceHistory[this.priceHistory.length - 1];
     const previous = this.priceHistory[this.priceHistory.length - 10];
     
+    if (!current || !previous || previous === 0) return 0;
+    
     return (current - previous) / previous;
   }
 
@@ -143,7 +142,7 @@ export class TradingStrategy {
     return Math.sqrt(variance) / mean;
   }
 
-  private calculateConfidence(action: 'buy' | 'sell', momentum: number, volatility: number): number {
+  private calculateConfidence(momentum: number, volatility: number): number {
     let confidence = Math.abs(momentum) * 10;
     
     // Reduce confidence for high volatility

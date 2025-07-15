@@ -149,11 +149,13 @@ export class TradingBot {
 
   private async placeOrder(signal: TradingSignal): Promise<number | null> {
     try {
+      // Type assertion safe because 'hold' actions are filtered out in executeSignal
+      const side = signal.action as 'buy' | 'sell';
       const order = await this.client.createOrder({
         pair: this.config.pair,
         amount: signal.amount.toString(),
         price: signal.price.toString(),
-        side: signal.action,
+        side: side,
         type: 'limit',
       });
 

@@ -130,7 +130,7 @@ describe('ProfitCalculator', () => {
 
       positions.forEach((pos, i) => {
         calculator.addPosition(`pos${i}`, pos);
-        calculator.closePosition(`pos${i}`, exitPrices[i], Date.now());
+        calculator.closePosition(`pos${i}`, exitPrices[i]!, Date.now());
       });
 
       const metrics = calculator.calculateProfitMetrics();
