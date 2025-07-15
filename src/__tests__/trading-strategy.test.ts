@@ -10,7 +10,7 @@ describe('TradingStrategy', () => {
       buyThreshold: 0.02,
       sellThreshold: 0.02,
       minProfitMargin: 0.01,
-      maxTradeAmount: 10000,
+      maxTradeAmount: 15000, // Increased to ensure expected profit > 100 JPY
       riskTolerance: 0.8,
     };
     strategy = new TradingStrategy(config);
@@ -69,17 +69,27 @@ describe('TradingStrategy', () => {
     });
 
     it('should generate buy signal for upward trend', () => {
-      // Create strong upward trend: need momentum > 0.02 over 9 periods (10th period ago vs current)
-      // 5000000 to 5150000 = 3% increase over 9 periods = momentum > 0.02
+      // Create gradual upward trend that ensures:
+      // 1. Short MA (5-period) > Long MA (20-period)
+      // 2. Momentum > 0.02 (current vs 10th period ago)
+      // 3. Low volatility < 0.1
       const prices = [];
-      for (let i = 0; i < 20; i++) {
-        prices.push(5000000 + i * 7500); // Larger increments to create momentum > 0.02
+      
+      // First 10 prices: stable base for long MA
+      for (let i = 0; i < 10; i++) {
+        prices.push(5000000);
+      }
+      
+      // Next 9 prices: gradual upward trend (save last price for ticker)
+      for (let i = 0; i < 9; i++) {
+        prices.push(5000000 + (i + 1) * 35000); // Increase to 5315000
       }
       
       prices.forEach(price => strategy.updatePrice(price));
 
-      // High volume ticker to meet volume requirement > 1000
-      const ticker = createMockTicker('5142500', '5000');
+      // High volume ticker with final price to complete the trend
+      // This will be added as the 20th price via generateSignal()
+      const ticker = createMockTicker('5350000', '5000');
       const signal = strategy.generateSignal(ticker);
 
       expect(signal.action).toBe('buy');
@@ -89,17 +99,27 @@ describe('TradingStrategy', () => {
     });
 
     it('should generate sell signal for downward trend', () => {
-      // Create strong downward trend: need momentum < -0.02 over 9 periods
-      // 5500000 to 5350000 = -2.7% decrease over 9 periods = momentum < -0.02
+      // Create gradual downward trend that ensures:
+      // 1. Short MA (5-period) < Long MA (20-period)
+      // 2. Momentum < -0.02 (current vs 10th period ago)
+      // 3. Volume > 1000
       const prices = [];
-      for (let i = 0; i < 20; i++) {
-        prices.push(5500000 - i * 7500); // Larger decrements to create momentum < -0.02
+      
+      // First 10 prices: high base for long MA
+      for (let i = 0; i < 10; i++) {
+        prices.push(5500000);
+      }
+      
+      // Next 9 prices: gradual downward trend (save last price for ticker)
+      for (let i = 0; i < 9; i++) {
+        prices.push(5500000 - (i + 1) * 45000); // Even stronger decrease for higher confidence
       }
       
       prices.forEach(price => strategy.updatePrice(price));
 
-      // High volume ticker to meet volume requirement > 1000
-      const ticker = createMockTicker('5357500', '5000');
+      // High volume ticker with final price to complete the trend
+      // This will be added as the 20th price via generateSignal()
+      const ticker = createMockTicker('5095000', '5000');
       const signal = strategy.generateSignal(ticker);
 
       expect(signal.action).toBe('sell');
@@ -157,18 +177,25 @@ describe('TradingStrategy', () => {
       
       const lowProfitStrategy = new TradingStrategy(lowProfitConfig);
       
-      // Create strong upward trend with low volatility that passes confidence check
-      // Need momentum > 0.02 and low volatility for high confidence
+      // Create strong upward trend that ensures all signal conditions are met
+      // but profit is too low due to tiny maxTradeAmount
       const prices = [];
-      for (let i = 0; i < 20; i++) {
-        prices.push(5000000 + i * 7500); // Strong consistent trend: 3% over 9 periods
+      
+      // First 10 prices: stable base for long MA
+      for (let i = 0; i < 10; i++) {
+        prices.push(5000000);
+      }
+      
+      // Next 9 prices: gradual upward trend (save last price for ticker)
+      for (let i = 0; i < 9; i++) {
+        prices.push(5000000 + (i + 1) * 35000); // Increase to 5315000
       }
       
       prices.forEach(price => lowProfitStrategy.updatePrice(price));
 
       // expectedProfit = amount * price * minProfitMargin
-      // With maxTradeAmount=1 and price=5142500, amount ≈ 0.0000002, profit ≈ 0.01 JPY < 100
-      const ticker = createMockTicker('5142500', '5000');
+      // With maxTradeAmount=1 and price=5350000, profit will be < 100 JPY
+      const ticker = createMockTicker('5350000', '5000');
       const signal = lowProfitStrategy.generateSignal(ticker);
 
       expect(signal.action).toBe('hold');
