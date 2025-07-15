@@ -1,6 +1,6 @@
 import { performance } from 'perf_hooks';
 
-interface Task<T = any> {
+interface Task<T = unknown> {
   id: string;
   fn: () => Promise<T>;
   priority: number;
@@ -33,9 +33,9 @@ export class WorkerPool {
   private taskIdCounter = 0;
 
   constructor(
-    maxWorkers: number = 4,
-    defaultTimeout: number = 30000,
-    queueCheckInterval: number = 100
+    maxWorkers = 4,
+    defaultTimeout = 30000,
+    queueCheckInterval = 100
   ) {
     this.maxWorkers = maxWorkers;
     this.defaultTimeout = defaultTimeout;
@@ -127,13 +127,13 @@ export class WorkerPool {
       // Handle retries
       if (task.retries < task.maxRetries) {
         task.retries++;
-        console.warn(`Task ${task.id} failed, retrying (${task.retries}/${task.maxRetries}):`, error);
+        // Task failed, retrying
         
         // Re-queue the task with lower priority
         task.priority = Math.max(1, task.priority - 1);
         this.taskQueue.push(task);
       } else {
-        console.error(`Task ${task.id} failed after ${task.maxRetries} retries:`, error);
+        // Task failed after max retries
         task.reject(error as Error);
         this.activeTasks.delete(task.id);
       }

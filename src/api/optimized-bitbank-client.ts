@@ -13,14 +13,14 @@ import {
 interface BatchRequest {
   path: string;
   method: 'GET' | 'POST';
-  body?: any;
-  resolve: (data: any) => void;
-  reject: (error: any) => void;
+  body?: unknown;
+  resolve: (data: unknown) => void;
+  reject: (error: unknown) => void;
   timestamp: number;
 }
 
 interface CachedResponse {
-  data: any;
+  data: unknown;
   timestamp: number;
   ttl: number;
 }
@@ -104,7 +104,7 @@ export class OptimizedBitbankClient {
     return `${path}${body ? `_${JSON.stringify(body)}` : ''}`;
   }
 
-  private getCachedResponse(key: string): any | null {
+  private getCachedResponse(key: string): unknown | null {
     const cached = this.responseCache.get(key);
     if (cached && Date.now() - cached.timestamp < cached.ttl) {
       return cached.data;
@@ -112,7 +112,7 @@ export class OptimizedBitbankClient {
     return null;
   }
 
-  private setCachedResponse(key: string, data: any, ttl: number = this.DEFAULT_CACHE_TTL): void {
+  private setCachedResponse(key: string, data: unknown, ttl: number = this.DEFAULT_CACHE_TTL): void {
     this.responseCache.set(key, {
       data,
       timestamp: Date.now(),
@@ -123,10 +123,10 @@ export class OptimizedBitbankClient {
   private async executeRequest(
     path: string,
     method: 'GET' | 'POST',
-    body?: any,
-    useCache: boolean = true,
+    body?: unknown,
+    useCache = true,
     cacheTtl: number = this.DEFAULT_CACHE_TTL
-  ): Promise<any> {
+  ): Promise<unknown> {
     // Check cache first for GET requests
     if (method === 'GET' && useCache) {
       const cacheKey = this.getCacheKey(path, body);

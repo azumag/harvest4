@@ -110,7 +110,7 @@ export class PerformanceMonitor {
     this.alerts = this.alerts.filter(alert => Date.now() - alert.timestamp < 300000); // Keep 5 minutes
   }
 
-  recordMetric(name: string, value: number, unit: string = 'ms'): void {
+  recordMetric(name: string, value: number, unit = 'ms'): void {
     const metric: PerformanceMetric = {
       name,
       value,
@@ -245,7 +245,7 @@ export class PerformanceMonitor {
     return allMetrics.sort((a, b) => b.timestamp - a.timestamp);
   }
 
-  getRecentAlerts(limit: number = 10): BottleneckAlert[] {
+  getRecentAlerts(limit = 10): BottleneckAlert[] {
     return this.alerts
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, limit);
