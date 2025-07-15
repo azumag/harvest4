@@ -74,3 +74,120 @@ export interface ProfitCalculation {
   currentDrawdown: number;
   maxDrawdown: number;
 }
+
+// WebSocket Real-time Data Types
+export interface OrderBookEntry {
+  price: string;
+  amount: string;
+}
+
+export interface OrderBookData {
+  asks: OrderBookEntry[];
+  bids: OrderBookEntry[];
+  asks_over: string;
+  bids_under: string;
+  asks_count: number;
+  bids_count: number;
+  sequence_id: number;
+  timestamp: number;
+}
+
+export interface DepthDiffData {
+  asks: OrderBookEntry[];
+  bids: OrderBookEntry[];
+  sequence_id: number;
+  timestamp: number;
+}
+
+export interface TransactionData {
+  transaction_id: number;
+  side: 'buy' | 'sell';
+  price: string;
+  amount: string;
+  executed_at: number;
+}
+
+export interface TickerStreamData {
+  pair: string;
+  sell: string;
+  buy: string;
+  high: string;
+  low: string;
+  last: string;
+  vol: string;
+  timestamp: number;
+}
+
+export interface WebSocketChannels {
+  ticker: string;
+  transactions: string;
+  depth_diff: string;
+  depth_whole: string;
+}
+
+// Market Analysis Types
+export interface OrderBookAnalysis {
+  bidAskSpread: number;
+  bidAskSpreadPercent: number;
+  midPrice: number;
+  totalBidVolume: number;
+  totalAskVolume: number;
+  orderBookImbalance: number;
+  supportLevel: number;
+  resistanceLevel: number;
+  liquidityDepth: number;
+  largeOrderThreshold: number;
+  largeOrders: {
+    bids: OrderBookEntry[];
+    asks: OrderBookEntry[];
+  };
+}
+
+export interface VolumeAnalysis {
+  currentVolume: number;
+  volumeMA: number;
+  volumeSpike: boolean;
+  volumeProfile: {
+    price: number;
+    volume: number;
+  }[];
+  twap: number;
+  vwap: number;
+  institutionalActivity: number;
+}
+
+export interface MarketMicrostructure {
+  averageSpread: number;
+  spreadTrend: 'increasing' | 'decreasing' | 'stable';
+  tradeFrequency: number;
+  priceImpact: number;
+  liquidityProviders: {
+    [price: string]: {
+      count: number;
+      volume: number;
+    };
+  };
+  executionQuality: number;
+}
+
+export interface MarketAlert {
+  type: 'anomaly' | 'breakout' | 'volume' | 'spread' | 'system';
+  level: 'low' | 'medium' | 'high' | 'critical';
+  message: string;
+  timestamp: number;
+  data: unknown;
+}
+
+export interface RealtimeMarketData {
+  pair: string;
+  orderBook: OrderBookData;
+  recentTransactions: TransactionData[];
+  ticker: TickerStreamData;
+  analysis: {
+    orderBook: OrderBookAnalysis;
+    volume: VolumeAnalysis;
+    microstructure: MarketMicrostructure;
+  };
+  alerts: MarketAlert[];
+  lastUpdated: number;
+}

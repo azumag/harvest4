@@ -1,4 +1,4 @@
-import { BitbankTicker, TradingSignal } from '../types/bitbank';
+import { BitbankTicker, TradingSignal, RealtimeMarketData } from '../types/bitbank';
 
 export interface TradingStrategyConfig {
   buyThreshold: number;
@@ -24,7 +24,7 @@ export class TradingStrategy {
     }
   }
 
-  generateSignal(ticker: BitbankTicker): TradingSignal {
+  generateSignal(ticker: BitbankTicker, realtimeData?: RealtimeMarketData): TradingSignal {
     const currentPrice = parseFloat(ticker.last);
     this.updatePrice(currentPrice);
 
@@ -38,8 +38,11 @@ export class TradingStrategy {
       };
     }
 
-    const signal = this.analyzeMarketConditions(ticker);
-    return this.applyRiskManagement(signal);
+    const signal = realtimeData 
+      ? this.analyzeMarketConditionsWithRealtimeData(ticker, realtimeData)
+      : this.analyzeMarketConditions(ticker);
+    
+    return this.applyRiskManagement(signal, realtimeData);
   }
 
   private analyzeMarketConditions(ticker: BitbankTicker): TradingSignal {
@@ -163,13 +166,204 @@ export class TradingStrategy {
     return baseAmount * volatilityAdjustment * this.config.riskTolerance;
   }
 
-  private applyRiskManagement(signal: TradingSignal): TradingSignal {
+  private analyzeMarketConditionsWithRealtimeData(ticker: BitbankTicker, realtimeData: RealtimeMarketData): TradingSignal {
+    const currentPrice = parseFloat(ticker.last);
+    const volume = parseFloat(ticker.vol);
+    
+    // Calculate moving averages
+    const shortMA = this.calculateMovingAverage(5);
+    const longMA = this.calculateMovingAverage(20);
+    
+    // Calculate price momentum
+    const momentum = this.calculateMomentum();
+    
+    // Calculate volatility
+    const volatility = this.calculateVolatility();
+    
+    // Enhanced analysis with real-time data
+    const orderBookAnalysis = realtimeData.analysis.orderBook;
+    
+    // Determine signal based on multiple indicators including real-time data
+    if (this.shouldBuyWithRealtimeData(currentPrice, shortMA, longMA, momentum, volatility, volume, realtimeData)) {
+      const enhancedConfidence = this.calculateEnhancedConfidence('buy', momentum, volatility, realtimeData);
+      const optimizedAmount = this.calculateOptimizedTradeAmount(currentPrice, volatility, realtimeData);
+      
+      return {
+        action: 'buy',
+        confidence: enhancedConfidence,
+        price: orderBookAnalysis.midPrice > 0 ? orderBookAnalysis.midPrice : currentPrice,
+        amount: optimizedAmount,
+        reason: this.generateEnhancedReason('buy', momentum, realtimeData),
+      };
+    } else if (this.shouldSellWithRealtimeData(currentPrice, shortMA, longMA, momentum, volatility, volume, realtimeData)) {
+      const enhancedConfidence = this.calculateEnhancedConfidence('sell', momentum, volatility, realtimeData);
+      const optimizedAmount = this.calculateOptimizedTradeAmount(currentPrice, volatility, realtimeData);
+      
+      return {
+        action: 'sell',
+        confidence: enhancedConfidence,
+        price: orderBookAnalysis.midPrice > 0 ? orderBookAnalysis.midPrice : currentPrice,
+        amount: optimizedAmount,
+        reason: this.generateEnhancedReason('sell', momentum, realtimeData),
+      };
+    }
+
+    return {
+      action: 'hold',
+      confidence: 0.5,
+      price: currentPrice,
+      amount: 0,
+      reason: 'No clear trend detected with real-time analysis',
+    };
+  }
+
+  private shouldBuyWithRealtimeData(
+    currentPrice: number,
+    shortMA: number,
+    longMA: number,
+    momentum: number,
+    volatility: number,
+    volume: number,
+    realtimeData: RealtimeMarketData
+  ): boolean {
+    const orderBook = realtimeData.analysis.orderBook;
+    const volumeAnalysis = realtimeData.analysis.volume;
+    const microstructure = realtimeData.analysis.microstructure;
+    
+    // Basic technical analysis
+    const basicConditions = (
+      shortMA > longMA && // Upward trend
+      momentum > this.config.buyThreshold && // Positive momentum
+      volatility < 0.1 && // Low volatility for safer entry
+      volume > 1000 // Sufficient volume
+    );
+    
+    // Enhanced conditions with real-time data
+    const enhancedConditions = (
+      orderBook.orderBookImbalance > 0.1 && // Buy pressure
+      orderBook.bidAskSpreadPercent < 0.5 && // Reasonable spread
+      !volumeAnalysis.volumeSpike && // No abnormal volume spike
+      microstructure.executionQuality > 0.5 && // Good execution quality
+      orderBook.liquidityDepth > 0.5 // Adequate liquidity
+    );
+    
+    return basicConditions && enhancedConditions;
+  }
+
+  private shouldSellWithRealtimeData(
+    currentPrice: number,
+    shortMA: number,
+    longMA: number,
+    momentum: number,
+    volatility: number,
+    volume: number,
+    realtimeData: RealtimeMarketData
+  ): boolean {
+    const orderBook = realtimeData.analysis.orderBook;
+    const volumeAnalysis = realtimeData.analysis.volume;
+    const microstructure = realtimeData.analysis.microstructure;
+    
+    // Basic technical analysis
+    const basicConditions = (
+      shortMA < longMA && // Downward trend
+      momentum < -this.config.sellThreshold && // Negative momentum
+      volume > 1000 // Sufficient volume
+    );
+    
+    // Enhanced conditions with real-time data
+    const enhancedConditions = (
+      orderBook.orderBookImbalance < -0.1 && // Sell pressure
+      orderBook.bidAskSpreadPercent < 0.5 && // Reasonable spread
+      !volumeAnalysis.volumeSpike && // No abnormal volume spike
+      microstructure.executionQuality > 0.5 && // Good execution quality
+      orderBook.liquidityDepth > 0.5 // Adequate liquidity
+    );
+    
+    return basicConditions && enhancedConditions;
+  }
+
+  private calculateEnhancedConfidence(
+    action: 'buy' | 'sell',
+    momentum: number,
+    volatility: number,
+    realtimeData: RealtimeMarketData
+  ): number {
+    let baseConfidence = Math.abs(momentum) * 10;
+    
+    // Reduce confidence for high volatility
+    baseConfidence *= (1 - volatility);
+    
+    // Adjust confidence based on real-time data
+    const orderBook = realtimeData.analysis.orderBook;
+    const microstructure = realtimeData.analysis.microstructure;
+    
+    // Boost confidence for strong order book signals
+    if (action === 'buy' && orderBook.orderBookImbalance > 0.2) {
+      baseConfidence *= 1.2;
+    } else if (action === 'sell' && orderBook.orderBookImbalance < -0.2) {
+      baseConfidence *= 1.2;
+    }
+    
+    // Adjust for execution quality
+    baseConfidence *= microstructure.executionQuality;
+    
+    // Adjust for spread
+    if (orderBook.bidAskSpreadPercent > 0.5) {
+      baseConfidence *= 0.8;
+    }
+    
+    // Ensure confidence is between 0 and 1
+    return Math.max(0, Math.min(1, baseConfidence));
+  }
+
+  private calculateOptimizedTradeAmount(
+    price: number,
+    volatility: number,
+    realtimeData: RealtimeMarketData
+  ): number {
+    // Base amount calculation
+    const baseAmount = this.config.maxTradeAmount / price;
+    const volatilityAdjustment = 1 - Math.min(volatility * 2, 0.5);
+    
+    // Adjust based on liquidity
+    const liquidityAdjustment = Math.min(realtimeData.analysis.orderBook.liquidityDepth, 1);
+    
+    // Adjust based on execution quality
+    const executionAdjustment = realtimeData.analysis.microstructure.executionQuality;
+    
+    return baseAmount * volatilityAdjustment * liquidityAdjustment * executionAdjustment * this.config.riskTolerance;
+  }
+
+  private generateEnhancedReason(action: 'buy' | 'sell', momentum: number, realtimeData: RealtimeMarketData): string {
+    const orderBook = realtimeData.analysis.orderBook;
+    const volume = realtimeData.analysis.volume;
+    
+    const reasons = [];
+    
+    if (action === 'buy') {
+      reasons.push('Bullish trend detected');
+      if (orderBook.orderBookImbalance > 0.1) reasons.push('Strong buy pressure');
+      if (volume.institutionalActivity > 0.3) reasons.push('Institutional buying');
+    } else {
+      reasons.push('Bearish trend detected');
+      if (orderBook.orderBookImbalance < -0.1) reasons.push('Strong sell pressure');
+      if (volume.institutionalActivity > 0.3) reasons.push('Institutional selling');
+    }
+    
+    if (orderBook.bidAskSpreadPercent < 0.2) reasons.push('Tight spread');
+    if (orderBook.liquidityDepth > 1) reasons.push('High liquidity');
+    
+    return reasons.join(', ');
+  }
+
+  private applyRiskManagement(signal: TradingSignal, realtimeData?: RealtimeMarketData): TradingSignal {
     if (signal.action === 'hold') {
       return signal;
     }
 
-    // Apply minimum confidence threshold
-    if (signal.confidence < 0.6) {
+    // Apply minimum confidence threshold (higher for real-time data)
+    const minConfidence = realtimeData ? 0.7 : 0.6;
+    if (signal.confidence < minConfidence) {
       return {
         ...signal,
         action: 'hold',
@@ -187,6 +381,31 @@ export class TradingStrategy {
         amount: 0,
         reason: `${signal.reason} - Expected profit too low: ${expectedProfit} JPY`,
       };
+    }
+
+    // Additional risk checks for real-time data
+    if (realtimeData) {
+      const orderBook = realtimeData.analysis.orderBook;
+      
+      // Check for excessive spread
+      if (orderBook.bidAskSpreadPercent > 1.0) {
+        return {
+          ...signal,
+          action: 'hold',
+          amount: 0,
+          reason: `${signal.reason} - Spread too wide: ${orderBook.bidAskSpreadPercent.toFixed(2)}%`,
+        };
+      }
+      
+      // Check for adequate liquidity
+      if (orderBook.liquidityDepth < 0.1) {
+        return {
+          ...signal,
+          action: 'hold',
+          amount: 0,
+          reason: `${signal.reason} - Insufficient liquidity: ${orderBook.liquidityDepth}`,
+        };
+      }
     }
 
     return signal;
