@@ -3,7 +3,6 @@ import { BacktestEngine } from './backtest-engine';
 import { PerformanceAnalyzer } from '../analysis/performance-analyzer';
 import { ParameterOptimizer } from '../optimization/parameter-optimizer';
 import { StrategyComparator } from '../comparison/strategy-comparator';
-import { BitbankConfig } from '../types/bitbank';
 import { TradingStrategyConfig } from '../strategies/trading-strategy';
 import {
   BacktestEngineConfig,
@@ -14,7 +13,7 @@ import {
   OptimizationResult,
   WalkForwardResult,
   StrategyComparison,
-  PerformanceMetrics,
+  DataQuality,
   HistoricalDataPoint
 } from '../types/backtest';
 
@@ -88,7 +87,7 @@ export class BacktestOrchestrator {
     
     console.log(`Optimization completed. Best result:`);
     if (results.length > 0) {
-      const best = results[0];
+      const best = results[0]!;
       console.log(`Parameters: ${JSON.stringify(best.parameters)}`);
       console.log(`Fitness: ${best.fitness.toFixed(4)}`);
       console.log(`Return: ${best.metrics.return.toFixed(2)}%`);
@@ -150,7 +149,7 @@ export class BacktestOrchestrator {
     
     console.log('Strategy comparison completed');
     console.log('Rankings:');
-    comparison.ranking.forEach((rank, index) => {
+    comparison.ranking.forEach((rank, _index) => {
       console.log(`${rank.rank}. ${rank.name}: Score ${rank.score.toFixed(3)}`);
     });
     
@@ -183,13 +182,13 @@ export class BacktestOrchestrator {
     const optimizationResults = await this.optimizeParameters(baseStrategy, optimizationConfig);
     console.log('Parameter optimization completed');
     
-    const bestStrategy = optimizationResults[0];
-    const optimizedBacktest = await this.runBacktest(bestStrategy.parameters as TradingStrategyConfig);
+    const bestStrategy = optimizationResults[0]!;
+    const optimizedBacktest = await this.runBacktest(bestStrategy.parameters as unknown as TradingStrategyConfig);
     console.log('Optimized strategy backtest completed');
     
     const strategies = [
       { name: 'Baseline', config: baseStrategy },
-      { name: 'Optimized', config: bestStrategy.parameters as TradingStrategyConfig }
+      { name: 'Optimized', config: bestStrategy.parameters as unknown as TradingStrategyConfig }
     ];
     
     const comparison = await this.compareStrategies(strategies);
@@ -198,7 +197,7 @@ export class BacktestOrchestrator {
     let walkForwardResult: WalkForwardResult | undefined;
     if (walkForwardConfig) {
       walkForwardResult = await this.runWalkForwardAnalysis(
-        bestStrategy.parameters as TradingStrategyConfig,
+        bestStrategy.parameters as unknown as TradingStrategyConfig,
         optimizationConfig,
         walkForwardConfig
       );
@@ -345,18 +344,18 @@ export class BacktestOrchestrator {
     
     if (format === 'json') {
       return this.dataManager.exportData(
-        results as any,
+        results as unknown as HistoricalDataPoint[],
         'json',
         filename
       );
     } else {
       const csvData = this.convertResultsToCSV(results);
-      return this.dataManager.exportData(csvData, 'csv', filename);
+      return this.dataManager.exportData(csvData as unknown as HistoricalDataPoint[], 'csv', filename);
     }
   }
 
-  private convertResultsToCSV(results: FullAnalysisResult): any[] {
-    const csvData: any[] = [];
+  private convertResultsToCSV(results: FullAnalysisResult): Array<Record<string, unknown>> {
+    const csvData: Array<Record<string, unknown>> = [];
     
     results.optimizedBacktest.trades.forEach(trade => {
       csvData.push({
@@ -390,14 +389,14 @@ export class BacktestOrchestrator {
 }
 
 interface FullAnalysisResult {
-  dataQuality: any;
+  dataQuality: DataQuality;
   baselineBacktest: BacktestResult;
   optimizationResults: OptimizationResult[];
   optimizedBacktest: BacktestResult;
   comparison: StrategyComparison;
   walkForwardResult?: WalkForwardResult;
   targetAnalysis: TargetAnalysis;
-  detailedReport: any;
+  detailedReport: unknown;
   recommendations: string[];
 }
 

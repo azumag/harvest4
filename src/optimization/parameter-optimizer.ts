@@ -10,7 +10,9 @@ import {
   WalkForwardResult,
   WalkForwardSegment,
   StabilityMetrics,
-  RobustnessMetrics
+  RobustnessMetrics,
+  BacktestResult,
+  PerformanceMetrics
 } from '../types/backtest';
 
 export class ParameterOptimizer {
@@ -49,6 +51,7 @@ export class ParameterOptimizer {
     
     for (let i = 0; i < parameterCombinations.length; i++) {
       const parameters = parameterCombinations[i];
+      if (!parameters) continue;
       const strategyConfig = { ...baseStrategy, ...parameters };
       
       try {
@@ -92,6 +95,7 @@ export class ParameterOptimizer {
       }
       
       const param = parameters[index];
+      if (!param) return;
       for (let value = param.min; value <= param.max; value += param.step) {
         current[param.name] = value;
         generateCombinations(index + 1, current);
@@ -211,7 +215,49 @@ export class ParameterOptimizer {
         results.push({
           parameters: individual,
           fitness: -Infinity,
-          backtest: {} as any,
+          backtest: {
+            trades: [],
+            positions: [],
+            initialBalance: 0,
+            finalBalance: 0,
+            totalReturn: -Infinity,
+            totalReturnPercent: -Infinity,
+            maxDrawdown: 100,
+            maxDrawdownPercent: 100,
+            winRate: 0,
+            profitFactor: 0,
+            averageWin: 0,
+            averageLoss: 0,
+            largestWin: 0,
+            largestLoss: 0,
+            totalTrades: 0,
+            winningTrades: 0,
+            losingTrades: 0,
+            averageHoldingPeriod: 0,
+            sharpeRatio: -Infinity,
+            sortinoRatio: -Infinity,
+            calmarRatio: -Infinity,
+            maxRunup: 0,
+            maxRunupPercent: 0,
+            recoveryFactor: 0,
+            expectancy: 0,
+            equityCurve: [],
+            drawdownCurve: [],
+            monthlyReturns: [],
+            annualizedReturn: -Infinity,
+            annualizedVolatility: 0,
+            var95: 0,
+            var99: 0,
+            cvar95: 0,
+            cvar99: 0,
+            skewness: 0,
+            kurtosis: 0,
+            ulcerIndex: 0,
+            gainToPainRatio: 0,
+            sterlingRatio: 0,
+            burkeRatio: 0,
+            martin_ratio: 0
+          },
           metrics: {
             return: -Infinity,
             sharpeRatio: -Infinity,
@@ -232,7 +278,10 @@ export class ParameterOptimizer {
     
     for (let i = 0; i < tournamentSize; i++) {
       const randomIndex = Math.floor(Math.random() * results.length);
-      tournament.push(results[randomIndex]);
+      const selected = results[randomIndex];
+      if (selected) {
+        tournament.push(selected);
+      }
     }
     
     return tournament.reduce((best, current) => current.fitness > best.fitness ? current : best);
@@ -248,9 +297,9 @@ export class ParameterOptimizer {
     
     parameters.forEach(param => {
       if (Math.random() < crossoverRate) {
-        child[param.name] = Math.random() < 0.5 ? parent1[param.name] : parent2[param.name];
+        child[param.name] = Math.random() < 0.5 ? (parent1[param.name] ?? param.min) : (parent2[param.name] ?? param.min);
       } else {
-        child[param.name] = parent1[param.name];
+        child[param.name] = parent1[param.name] ?? param.min;
       }
     });
     
@@ -268,7 +317,7 @@ export class ParameterOptimizer {
       if (Math.random() < mutationRate) {
         const range = param.max - param.min;
         const mutation = (Math.random() - 0.5) * range * 0.1; // 10% of range
-        mutated[param.name] = Math.max(param.min, Math.min(param.max, individual[param.name] + mutation));
+        mutated[param.name] = Math.max(param.min, Math.min(param.max, (individual[param.name] ?? param.min) + mutation));
       }
     });
     
@@ -325,7 +374,7 @@ export class ParameterOptimizer {
   }
 
   private calculateFitness(
-    result: any,
+    result: BacktestResult,
     fitnessFunction: 'return' | 'sharpe' | 'calmar' | 'profit_factor' | 'composite'
   ): number {
     switch (fitnessFunction) {
@@ -344,7 +393,7 @@ export class ParameterOptimizer {
     }
   }
 
-  private calculateCompositeFitness(result: any): number {
+  private calculateCompositeFitness(result: BacktestResult): number {
     const returnScore = Math.max(0, result.totalReturnPercent) / 100;
     const sharpeScore = Math.max(0, result.sharpeRatio) / 3;
     const drawdownPenalty = Math.max(0, result.maxDrawdownPercent) / 100;
@@ -386,10 +435,9 @@ export class ParameterOptimizer {
         continue;
       }
       
-      const bestParameters = optimizationResults[0].parameters;
-      const inSampleResult = optimizationResults[0].backtest;
+      const bestParameters = optimizationResults[0]!.parameters;
+      const inSampleResult = optimizationResults[0]!.backtest;
       
-      const testOptimizer = new ParameterOptimizer(testData, this.backtestConfig);
       const testStrategyConfig = { ...baseStrategy, ...bestParameters };
       const testBacktest = new BacktestEngine(this.backtestConfig, testStrategyConfig);
       const outOfSampleResult = await testBacktest.runBacktest(testData);
@@ -397,10 +445,10 @@ export class ParameterOptimizer {
       const degradation = this.calculateDegradation(inSampleResult, outOfSampleResult);
       
       segments.push({
-        startDate: this.data[segmentStart].timestamp,
-        endDate: this.data[segmentEnd - 1].timestamp,
-        optimizationPeriod: [this.data[segmentStart].timestamp, this.data[optimizationEnd - 1].timestamp],
-        testPeriod: [this.data[testStart].timestamp, this.data[testEnd - 1].timestamp],
+        startDate: this.data[segmentStart]!.timestamp,
+        endDate: this.data[segmentEnd - 1]!.timestamp,
+        optimizationPeriod: [this.data[segmentStart]!.timestamp, this.data[optimizationEnd - 1]!.timestamp],
+        testPeriod: [this.data[testStart]!.timestamp, this.data[testEnd - 1]!.timestamp],
         bestParameters,
         inSampleResult,
         outOfSampleResult,
@@ -422,16 +470,15 @@ export class ParameterOptimizer {
     };
   }
 
-  private calculateDegradation(inSample: any, outOfSample: any): number {
+  private calculateDegradation(inSample: BacktestResult, outOfSample: BacktestResult): number {
     if (inSample.totalReturnPercent === 0) return 0;
     return ((inSample.totalReturnPercent - outOfSample.totalReturnPercent) / Math.abs(inSample.totalReturnPercent)) * 100;
   }
 
-  private calculateOverallMetrics(segments: WalkForwardSegment[]): any {
+  private calculateOverallMetrics(segments: WalkForwardSegment[]): PerformanceMetrics {
     const outOfSampleResults = segments.map(s => s.outOfSampleResult);
     
     const totalReturn = outOfSampleResults.reduce((sum, r) => sum + r.totalReturnPercent, 0);
-    const averageReturn = totalReturn / outOfSampleResults.length;
     
     const returns = outOfSampleResults.map(r => r.totalReturnPercent / 100);
     const meanReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
@@ -460,13 +507,23 @@ export class ParameterOptimizer {
   }
 
   private calculateStabilityMetrics(segments: WalkForwardSegment[]): StabilityMetrics {
-    const parameterNames = Object.keys(segments[0].bestParameters);
+    if (segments.length === 0) {
+      return {
+        parameterStability: 0,
+        performanceStability: 0,
+        returnStability: 0,
+        drawdownStability: 0,
+        consistencyScore: 0
+      };
+    }
+    
+    const parameterNames = Object.keys(segments[0]!.bestParameters);
     const parameterStabilities: number[] = [];
     
     parameterNames.forEach(name => {
-      const values = segments.map(s => s.bestParameters[name]);
-      const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
-      const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length;
+      const values = segments.map(s => s.bestParameters[name]).filter(v => v !== undefined);
+      const mean = values.reduce((sum, v) => sum + (v || 0), 0) / values.length;
+      const variance = values.reduce((sum, v) => sum + Math.pow((v || 0) - mean, 2), 0) / values.length;
       const stability = variance > 0 ? 1 / (1 + Math.sqrt(variance)) : 1;
       parameterStabilities.push(stability);
     });
@@ -525,7 +582,7 @@ export class ParameterOptimizer {
     
     for (const result of topResults) {
       const strategyConfig = { ...result.parameters };
-      const backtest = new BacktestEngine(this.backtestConfig, strategyConfig as any);
+      const backtest = new BacktestEngine(this.backtestConfig, strategyConfig as unknown as TradingStrategyConfig);
       
       backtest.runBacktest(validationData).then(validationResult => {
         validationResults.push({
@@ -580,7 +637,7 @@ export class ParameterOptimizer {
     const n = x.length;
     const sumX = x.reduce((sum, val) => sum + val, 0);
     const sumY = y.reduce((sum, val) => sum + val, 0);
-    const sumXY = x.reduce((sum, val, i) => sum + val * y[i], 0);
+    const sumXY = x.reduce((sum, val, i) => sum + val * (y[i] || 0), 0);
     const sumX2 = x.reduce((sum, val) => sum + val * val, 0);
     const sumY2 = y.reduce((sum, val) => sum + val * val, 0);
     

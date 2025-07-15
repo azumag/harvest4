@@ -1,4 +1,3 @@
-import { TradingStrategyConfig } from '../strategies/trading-strategy';
 
 export interface HistoricalDataPoint {
   timestamp: number;
