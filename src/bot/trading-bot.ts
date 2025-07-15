@@ -1,4 +1,4 @@
-import { BitbankClient } from '../api/bitbank-client';
+import { OptimizedBitbankClient } from '../api/optimized-bitbank-client';
 import { TradingStrategy, TradingStrategyConfig } from '../strategies/trading-strategy';
 import { ProfitCalculator } from '../utils/profit-calculator';
 import { BitbankConfig, TradingSignal, TradingPosition, BitbankTicker } from '../types/bitbank';
@@ -14,7 +14,7 @@ export interface TradingBotConfig extends BitbankConfig {
 }
 
 export class TradingBot {
-  private client: BitbankClient;
+  private client: OptimizedBitbankClient;
   private strategy: TradingStrategy;
   private profitCalculator: ProfitCalculator;
   private config: TradingBotConfig;
@@ -25,7 +25,7 @@ export class TradingBot {
 
   constructor(config: TradingBotConfig) {
     this.config = config;
-    this.client = new BitbankClient(config);
+    this.client = new OptimizedBitbankClient(config);
     this.strategy = new TradingStrategy(config.strategy);
     this.profitCalculator = new ProfitCalculator(config.initialBalance);
   }

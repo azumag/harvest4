@@ -8,27 +8,90 @@ export interface TradingStrategyConfig {
   riskTolerance: number;
 }
 
+interface CachedCalculation {
+  value: number;
+  timestamp: number;
+  priceIndex: number;
+}
+
 export class TradingStrategy {
   private config: TradingStrategyConfig;
-  private priceHistory: number[] = [];
+  private priceHistory: Float64Array;
+  private currentIndex = 0;
+  private filled = false;
   private readonly HISTORY_SIZE = 20;
+  private readonly CACHE_TTL = 1000; // 1 second cache TTL
+
+  // Optimized caching for calculations
+  private shortMACache: CachedCalculation = { value: 0, timestamp: 0, priceIndex: -1 };
+  private longMACache: CachedCalculation = { value: 0, timestamp: 0, priceIndex: -1 };
+  private momentumCache: CachedCalculation = { value: 0, timestamp: 0, priceIndex: -1 };
+  private volatilityCache: CachedCalculation = { value: 0, timestamp: 0, priceIndex: -1 };
+
+  // Incremental calculation state
+  private shortMASum = 0;
+  private longMASum = 0;
+  private shortPeriodCount = 0;
+  private longPeriodCount = 0;
 
   constructor(config: TradingStrategyConfig) {
     this.config = config;
+    this.priceHistory = new Float64Array(this.HISTORY_SIZE);
   }
 
   updatePrice(price: number): void {
-    this.priceHistory.push(price);
-    if (this.priceHistory.length > this.HISTORY_SIZE) {
-      this.priceHistory.shift();
+    const oldPrice = this.priceHistory[this.currentIndex];
+    this.priceHistory[this.currentIndex] = price;
+    
+    // Update incremental sums for moving averages
+    this.updateIncrementalSums(price, oldPrice);
+    
+    this.currentIndex = (this.currentIndex + 1) % this.HISTORY_SIZE;
+    if (this.currentIndex === 0) {
+      this.filled = true;
     }
+    
+    // Invalidate caches when new price is added
+    this.invalidateCaches();
+  }
+
+  private updateIncrementalSums(newPrice: number, oldPrice: number | undefined): void {
+    // Update short MA sum (5 periods)
+    const shortPeriod = 5;
+    if (this.getHistoryLength() >= shortPeriod) {
+      this.shortMASum += newPrice - (this.filled && oldPrice !== undefined ? oldPrice : 0);
+      this.shortPeriodCount = Math.min(shortPeriod, this.getHistoryLength());
+    } else {
+      this.shortMASum += newPrice;
+      this.shortPeriodCount = this.getHistoryLength();
+    }
+
+    // Update long MA sum (20 periods)
+    if (this.getHistoryLength() >= this.HISTORY_SIZE) {
+      this.longMASum += newPrice - (this.filled && oldPrice !== undefined ? oldPrice : 0);
+      this.longPeriodCount = this.HISTORY_SIZE;
+    } else {
+      this.longMASum += newPrice;
+      this.longPeriodCount = this.getHistoryLength();
+    }
+  }
+
+  private getHistoryLength(): number {
+    return this.filled ? this.HISTORY_SIZE : this.currentIndex;
+  }
+
+  private invalidateCaches(): void {
+    this.shortMACache.timestamp = 0;
+    this.longMACache.timestamp = 0;
+    this.momentumCache.timestamp = 0;
+    this.volatilityCache.timestamp = 0;
   }
 
   generateSignal(ticker: BitbankTicker): TradingSignal {
     const currentPrice = parseFloat(ticker.last);
     this.updatePrice(currentPrice);
 
-    if (this.priceHistory.length < 10) {
+    if (this.getHistoryLength() < 10) {
       return {
         action: 'hold',
         confidence: 0,
@@ -116,33 +179,119 @@ export class TradingStrategy {
   }
 
   private calculateMovingAverage(period: number): number {
-    if (this.priceHistory.length < period) {
-      return this.priceHistory[this.priceHistory.length - 1] || 0;
+    const now = Date.now();
+    
+    // Use optimized incremental calculation for standard periods
+    if (period === 5) {
+      if (this.isCacheValid(this.shortMACache, now)) {
+        return this.shortMACache.value;
+      }
+      
+      if (this.shortPeriodCount === 0) {
+        return 0;
+      }
+      
+      const result = this.shortMASum / this.shortPeriodCount;
+      this.shortMACache = { value: result, timestamp: now, priceIndex: this.currentIndex };
+      return result;
     }
     
-    const sum = this.priceHistory.slice(-period).reduce((a, b) => a + b, 0);
-    return sum / period;
+    if (period === 20) {
+      if (this.isCacheValid(this.longMACache, now)) {
+        return this.longMACache.value;
+      }
+      
+      if (this.longPeriodCount === 0) {
+        return 0;
+      }
+      
+      const result = this.longMASum / this.longPeriodCount;
+      this.longMACache = { value: result, timestamp: now, priceIndex: this.currentIndex };
+      return result;
+    }
+    
+    // Fallback for other periods
+    return this.calculateMovingAverageDirect(period);
+  }
+
+  private calculateMovingAverageDirect(period: number): number {
+    const historyLength = this.getHistoryLength();
+    if (historyLength < period) {
+      return this.getCurrentPrice();
+    }
+    
+    let sum = 0;
+    const actualPeriod = Math.min(period, historyLength);
+    
+    for (let i = 0; i < actualPeriod; i++) {
+      const index = (this.currentIndex - 1 - i + this.HISTORY_SIZE) % this.HISTORY_SIZE;
+      sum += this.priceHistory[index] || 0;
+    }
+    
+    return sum / actualPeriod;
+  }
+
+  private getCurrentPrice(): number {
+    if (this.currentIndex === 0 && !this.filled) {
+      return 0;
+    }
+    const lastIndex = (this.currentIndex - 1 + this.HISTORY_SIZE) % this.HISTORY_SIZE;
+    return this.priceHistory[lastIndex] || 0;
+  }
+
+  private isCacheValid(cache: CachedCalculation, now: number): boolean {
+    return cache.timestamp > 0 && 
+           (now - cache.timestamp) < this.CACHE_TTL &&
+           cache.priceIndex === this.currentIndex;
   }
 
   private calculateMomentum(): number {
-    if (this.priceHistory.length < 10) return 0;
+    const now = Date.now();
     
-    const current = this.priceHistory[this.priceHistory.length - 1];
-    const previous = this.priceHistory[this.priceHistory.length - 10];
+    if (this.isCacheValid(this.momentumCache, now)) {
+      return this.momentumCache.value;
+    }
+    
+    const historyLength = this.getHistoryLength();
+    if (historyLength < 10) return 0;
+    
+    const current = this.getCurrentPrice();
+    const previousIndex = (this.currentIndex - 10 + this.HISTORY_SIZE) % this.HISTORY_SIZE;
+    const previous = this.priceHistory[previousIndex];
     
     if (!current || !previous || previous === 0) return 0;
     
-    return (current - previous) / previous;
+    const result = (current - previous) / previous;
+    this.momentumCache = { value: result, timestamp: now, priceIndex: this.currentIndex };
+    return result;
   }
 
   private calculateVolatility(): number {
-    if (this.priceHistory.length < 10) return 0;
+    const now = Date.now();
+    
+    if (this.isCacheValid(this.volatilityCache, now)) {
+      return this.volatilityCache.value;
+    }
+    
+    const historyLength = this.getHistoryLength();
+    if (historyLength < 10) return 0;
     
     const mean = this.calculateMovingAverage(10);
-    const variance = this.priceHistory.slice(-10)
-      .reduce((sum, price) => sum + Math.pow(price - mean, 2), 0) / 10;
+    if (mean === 0) return 0;
     
-    return Math.sqrt(variance) / mean;
+    let variance = 0;
+    const period = Math.min(10, historyLength);
+    
+    for (let i = 0; i < period; i++) {
+      const index = (this.currentIndex - 1 - i + this.HISTORY_SIZE) % this.HISTORY_SIZE;
+      const price = this.priceHistory[index] || 0;
+      variance += Math.pow(price - mean, 2);
+    }
+    
+    variance /= period;
+    const result = Math.sqrt(variance) / mean;
+    this.volatilityCache = { value: result, timestamp: now, priceIndex: this.currentIndex };
+    return result;
   }
 
   private calculateConfidence(_action: 'buy' | 'sell', momentum: number, volatility: number): number {

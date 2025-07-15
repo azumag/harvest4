@@ -1,5 +1,7 @@
 import { config } from 'dotenv';
 import { TradingBot, TradingBotConfig } from './bot/trading-bot';
+import { MultiPairTradingBot } from './bot/multi-pair-trading-bot';
+import { PerformanceMonitor } from './utils/performance-monitor';
 import * as cron from 'node-cron';
 
 config();
@@ -32,7 +34,51 @@ const createTradingBotConfig = (): TradingBotConfig => {
   };
 };
 
+const createMultiPairTradingBotConfig = () => {
+  const apiKey = process.env['BB_API_KEY'];
+  const apiSecret = process.env['BB_API_SECRET'];
+
+  if (!apiKey || !apiSecret) {
+    throw new Error('Missing required environment variables: BB_API_KEY and BB_API_SECRET');
+  }
+
+  return {
+    apiKey,
+    apiSecret,
+    baseUrl: 'https://api.bitbank.cc',
+    pairs: ['btc_jpy', 'eth_jpy', 'xrp_jpy', 'ltc_jpy'],
+    initialBalance: 100000, // 100,000 JPY
+    maxConcurrentTrades: 6,
+    tradingInterval: 30000, // 30 seconds
+    stopLossPercentage: 2, // 2%
+    takeProfitPercentage: 4, // 4%
+    correlationThreshold: 0.7, // 70% correlation threshold
+    fundAllocationStrategy: 'performance' as const,
+    rebalanceInterval: 3600000, // 1 hour
+    strategy: {
+      buyThreshold: 0.02, // 2% momentum threshold
+      sellThreshold: 0.02, // 2% momentum threshold
+      minProfitMargin: 0.01, // 1% minimum profit margin
+      maxTradeAmount: 10000, // 10,000 JPY per trade
+      riskTolerance: 0.8, // 80% risk tolerance
+    },
+  };
+};
+
 const startTradingBot = async (): Promise<void> => {
+  const performanceMonitor = new PerformanceMonitor();
+  
+  // Check if multi-pair trading is enabled
+  const isMultiPair = process.env['MULTI_PAIR_TRADING'] === 'true';
+  
+  if (isMultiPair) {
+    await startMultiPairTradingBot(performanceMonitor);
+  } else {
+    await startSinglePairTradingBot(performanceMonitor);
+  }
+};
+
+const startSinglePairTradingBot = async (performanceMonitor: PerformanceMonitor): Promise<void> => {
   const botConfig = createTradingBotConfig();
   const bot = new TradingBot(botConfig);
 
@@ -42,6 +88,7 @@ const startTradingBot = async (): Promise<void> => {
     try {
       await bot.stop();
       console.log('Bot stopped successfully');
+      console.log(performanceMonitor.getPerformanceReport());
       process.exit(0);
     } catch (error) {
       console.error('Error during shutdown:', error);
@@ -66,6 +113,47 @@ const startTradingBot = async (): Promise<void> => {
     await bot.start();
   } catch (error) {
     console.error('Failed to start trading bot:', error);
+    process.exit(1);
+  }
+};
+
+const startMultiPairTradingBot = async (performanceMonitor: PerformanceMonitor): Promise<void> => {
+  const botConfig = createMultiPairTradingBotConfig();
+  const bot = new MultiPairTradingBot(botConfig);
+
+  // Graceful shutdown handling
+  const shutdown = async (signal: string): Promise<void> => {
+    console.log(`Received ${signal}, shutting down gracefully...`);
+    try {
+      await bot.stop();
+      console.log('Multi-pair bot stopped successfully');
+      console.log(performanceMonitor.getPerformanceReport());
+      process.exit(0);
+    } catch (error) {
+      console.error('Error during shutdown:', error);
+      process.exit(1);
+    }
+  };
+
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+
+  try {
+    console.log('Starting Multi-Pair Trading Bot for Bitbank...');
+    console.log('Configuration:', {
+      pairs: botConfig.pairs,
+      initialBalance: botConfig.initialBalance,
+      maxConcurrentTrades: botConfig.maxConcurrentTrades,
+      tradingInterval: botConfig.tradingInterval,
+      stopLossPercentage: botConfig.stopLossPercentage,
+      takeProfitPercentage: botConfig.takeProfitPercentage,
+      correlationThreshold: botConfig.correlationThreshold,
+      fundAllocationStrategy: botConfig.fundAllocationStrategy,
+    });
+
+    await bot.start();
+  } catch (error) {
+    console.error('Failed to start multi-pair trading bot:', error);
     process.exit(1);
   }
 };
@@ -108,4 +196,10 @@ if (require.main === module) {
   }
 }
 
-export { TradingBot, TradingBotConfig, createTradingBotConfig };
+export { 
+  TradingBot, 
+  TradingBotConfig, 
+  createTradingBotConfig,
+  MultiPairTradingBot,
+  createMultiPairTradingBotConfig
+};
