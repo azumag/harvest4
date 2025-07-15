@@ -1,3 +1,4 @@
+import { promises as fs } from 'fs';
 import { HistoricalDataManager } from '../data/historical-data-manager';
 import { BacktestEngine } from './backtest-engine';
 import { PerformanceAnalyzer } from '../analysis/performance-analyzer';
@@ -357,14 +358,19 @@ export class BacktestOrchestrator {
     const filename = `backtest_results_${timestamp}`;
     
     if (format === 'json') {
-      return this.dataManager.exportData(
-        results as any,
-        'json',
-        filename
-      );
+      // Direct file writing for JSON export
+      const filePath = `data/${filename}.json`;
+      await fs.mkdir('data', { recursive: true });
+      await fs.writeFile(filePath, JSON.stringify(results, null, 2));
+      return filePath;
     } else {
+      // Direct file writing for CSV export
       const csvData = this.convertResultsToCSV(results);
-      return this.dataManager.exportData(csvData as any, 'csv', filename);
+      const csvContent = this.convertToCSVString(csvData);
+      const filePath = `data/${filename}.csv`;
+      await fs.mkdir('data', { recursive: true });
+      await fs.writeFile(filePath, csvContent);
+      return filePath;
     }
   }
 
@@ -386,6 +392,24 @@ export class BacktestOrchestrator {
     });
     
     return csvData;
+  }
+
+  private convertToCSVString(data: Record<string, unknown>[]): string {
+    if (data.length === 0) return '';
+    
+    const headers = Object.keys(data[0]);
+    const rows = data.map(row => 
+      headers.map(header => {
+        const value = row[header];
+        // Handle values that might contain commas or quotes
+        if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+          return `"${value.replace(/"/g, '""')}"`;
+        }
+        return String(value);
+      }).join(',')
+    );
+    
+    return [headers.join(','), ...rows].join('\n');
   }
 
   async clearCache(): Promise<void> {
