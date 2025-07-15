@@ -69,7 +69,7 @@ export class TrailingStopManager {
     side: PositionSide,
     entryPrice: number,
     atrValue: number,
-    atrMultiplier: number = 2.0
+    atrMultiplier = 2.0
   ): void {
     const stopDistance = (atrValue * atrMultiplier) / entryPrice;
     const stopLevel = this.calculateInitialStopLevel(side, entryPrice, stopDistance);

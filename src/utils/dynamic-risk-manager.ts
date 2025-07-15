@@ -233,7 +233,7 @@ export class DynamicRiskManager {
     };
   }
 
-  suggestOptimalTrade(side: PositionSide, entryPrice: number, _accountBalance: number): TradeSignal {
+  suggestOptimalTrade(side: PositionSide, entryPrice: number, _accountBalance?: number): TradeSignal {
     const positionSize = this.calculateOptimalPositionSize(entryPrice);
     const riskReward = this.calculateOptimalRiskReward(side, entryPrice);
     

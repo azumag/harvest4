@@ -10,7 +10,7 @@ export class ATRCalculator {
   private candles: Candle[] = [];
   private atr = 0;
 
-  constructor(period: number = 14) {
+  constructor(period = 14) {
     this.period = period;
   }
 

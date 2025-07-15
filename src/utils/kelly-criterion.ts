@@ -12,11 +12,11 @@ export interface TradingStatistics {
 }
 
 export class KellyCriterionCalculator {
-  private maxKellyPercentage: number = 0.25; // Cap at 25%
-  private conservativeScale: number = 0.75;   // Use 75% of Kelly
-  private minPositionSize: number = 1000;     // Minimum 1000 JPY
-  private maxPositionSize: number = 100000;   // Maximum 100,000 JPY
-  private drawdownAdjustment: boolean = false;
+  private maxKellyPercentage = 0.25; // Cap at 25%
+  private conservativeScale = 0.75;   // Use 75% of Kelly
+  private minPositionSize = 1000;     // Minimum 1000 JPY
+  private maxPositionSize = 100000;   // Maximum 100,000 JPY
+  private drawdownAdjustment = false;
   
   private cachedStats: TradingStatistics | undefined;
 

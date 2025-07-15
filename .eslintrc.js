@@ -2,7 +2,7 @@ module.exports = {
   parser: '@typescript-eslint/parser',
   extends: [
     'eslint:recommended',
-    '@typescript-eslint/recommended',
+    'plugin:@typescript-eslint/recommended',
   ],
   plugins: ['@typescript-eslint'],
   env: {
@@ -16,9 +16,8 @@ module.exports = {
     tsconfigRootDir: __dirname,
   },
   rules: {
-    '@typescript-eslint/no-unused-vars': 'error',
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     '@typescript-eslint/no-explicit-any': 'error',
-    '@typescript-eslint/prefer-const': 'error',
     '@typescript-eslint/no-inferrable-types': 'error',
     'no-console': 'warn',
     'prefer-const': 'error',
@@ -26,4 +25,12 @@ module.exports = {
     'object-shorthand': 'error',
     'prefer-arrow-callback': 'error',
   },
+  overrides: [
+    {
+      files: ['**/*.test.ts', '**/__tests__/**/*.ts'],
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off',
+      },
+    },
+  ],
 };
