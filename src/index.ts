@@ -20,8 +20,16 @@ const createTradingBotConfig = (): TradingBotConfig => {
     initialBalance: 100000, // 100,000 JPY
     maxConcurrentTrades: 3,
     tradingInterval: 30000, // 30 seconds
-    stopLossPercentage: 2, // 2%
-    takeProfitPercentage: 4, // 4%
+    riskManager: {
+      initialBalance: 100000,
+      maxDrawdown: 0.15, // 15% maximum drawdown
+      maxPositionSize: 10000, // 10,000 JPY per trade
+      minPositionSize: 1000, // 1,000 JPY minimum
+      atrPeriod: 14, // 14-period ATR
+      atrMultiplierStop: 2.0, // 2.0x ATR for stop loss
+      atrMultiplierTarget: 3.0, // 3.0x ATR for take profit
+      minRiskRewardRatio: 1.5, // 1.5:1 minimum risk/reward
+    },
     strategy: {
       buyThreshold: 0.02, // 2% momentum threshold
       sellThreshold: 0.02, // 2% momentum threshold
@@ -59,8 +67,11 @@ const startTradingBot = async (): Promise<void> => {
       initialBalance: botConfig.initialBalance,
       maxConcurrentTrades: botConfig.maxConcurrentTrades,
       tradingInterval: botConfig.tradingInterval,
-      stopLossPercentage: botConfig.stopLossPercentage,
-      takeProfitPercentage: botConfig.takeProfitPercentage,
+      riskManager: {
+        maxDrawdown: botConfig.riskManager.maxDrawdown,
+        atrMultiplierStop: botConfig.riskManager.atrMultiplierStop,
+        atrMultiplierTarget: botConfig.riskManager.atrMultiplierTarget,
+      },
     });
 
     await bot.start();

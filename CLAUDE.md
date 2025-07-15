@@ -26,7 +26,12 @@ src/
 ├── types/
 │   └── bitbank.ts             # TypeScript type definitions
 ├── utils/
-│   └── profit-calculator.ts    # Profit calculation and tracking
+│   ├── profit-calculator.ts    # Profit calculation and tracking
+│   ├── dynamic-risk-manager.ts # Comprehensive dynamic risk management
+│   ├── atr-calculator.ts       # Average True Range calculation
+│   ├── kelly-criterion.ts      # Kelly Criterion position sizing
+│   ├── trailing-stop.ts        # Trailing stop management
+│   └── performance-indicators.ts # Advanced performance metrics
 ├── __tests__/                 # Comprehensive test suite
 └── index.ts                   # Application entry point
 ```
@@ -39,20 +44,31 @@ src/
 - **Volatility Analysis**: Adjusts position sizes based on market volatility
 - **Volume Analysis**: Considers trading volume for signal confirmation
 
-### 2. Risk Management
-- **Stop Loss**: 2% default stop loss on all positions
-- **Take Profit**: 4% default take profit target
-- **Position Sizing**: Dynamic sizing based on volatility and risk tolerance
+### 2. Dynamic Risk Management
+- **ATR-Based Dynamic Stops**: Dynamic stop loss and take profit based on Average True Range
+- **Kelly Criterion Sizing**: Optimal position sizing with conservative scaling (25% max Kelly)
+- **Trailing Stops**: Multi-tier trailing stop system with ATR-based adjustments
+- **Market Regime Adaptation**: Risk parameters adapt to trending/ranging/volatile markets
+- **Drawdown Protection**: Automatic position size reduction during drawdowns
 - **Maximum Concurrent Trades**: Limited to 3 simultaneous positions
 - **Minimum Trade Interval**: 1 minute cooldown between trades
 
-### 3. Profit Calculation & Tracking
-- **Real-time P&L**: Continuous profit/loss monitoring
-- **Performance Metrics**: Win rate, drawdown, return calculations
-- **Trade History**: Complete record of all executed trades
-- **Performance Reports**: Detailed profitability analysis
+### 3. Advanced Performance Analytics
+- **Real-time P&L**: Continuous profit/loss monitoring with unrealized positions
+- **Performance Metrics**: Sharpe ratio, Sortino ratio, Calmar ratio, VaR
+- **Trade History**: Complete record with Kelly Criterion statistics
+- **Performance Reports**: Comprehensive risk-adjusted profitability analysis
+- **Market Correlation**: Position correlation analysis and risk assessment
 
-### 4. Error Handling & Monitoring
+### 4. Dynamic Risk Management Features
+- **ATR Calculation**: Wilder's smoothing method for volatility assessment
+- **Kelly Criterion**: Mathematical position sizing with conservative scaling
+- **Trailing Stops**: ATR-based, stepped, and percentage-based trailing systems
+- **Market Regime Detection**: Automatic detection of trending/ranging/volatile markets
+- **Portfolio Risk Management**: Real-time exposure and correlation monitoring
+- **Drawdown Protection**: Automatic position size reduction during adverse periods
+
+### 5. Error Handling & Monitoring
 - **Graceful Shutdown**: Proper cleanup on termination signals
 - **API Error Handling**: Robust error handling for API failures
 - **Health Checks**: Docker health checks for deployment monitoring
@@ -103,7 +119,9 @@ NODE_ENV=development
 2. **Trading Strategy Tests**: Technical analysis algorithm validation
 3. **Profit Calculator Tests**: Financial calculation accuracy
 4. **Trading Bot Tests**: Main bot orchestration logic
-5. **Integration Tests**: Application configuration and flow
+5. **Dynamic Risk Management Tests**: ATR, Kelly Criterion, trailing stops validation
+6. **Performance Indicators Tests**: Advanced metrics calculation accuracy
+7. **Integration Tests**: End-to-end application configuration and flow
 
 ### Running Tests
 ```bash
@@ -148,10 +166,11 @@ chmod +x deploy.sh
 - **Trading Pair**: BTC/JPY
 - **Initial Balance**: 100,000 JPY
 - **Trading Interval**: 30 seconds
-- **Stop Loss**: 2%
-- **Take Profit**: 4%
+- **Dynamic Stop Loss**: ATR-based with 2.0x multiplier (adaptive)
+- **Dynamic Take Profit**: ATR-based with 3.0x multiplier (adaptive)
+- **Position Sizing**: Kelly Criterion with 25% maximum allocation
 - **Maximum Trade Amount**: 10,000 JPY per trade
-- **Risk Tolerance**: 80%
+- **Risk Tolerance**: Conservative 75% Kelly scaling
 
 ### Strategy Parameters
 - **Buy Threshold**: 2% positive momentum
@@ -170,10 +189,12 @@ chmod +x deploy.sh
 5. **Profit Taking**: Systematic profit realization at target levels
 
 ### Performance Monitoring
-- **Real-time Metrics**: Continuous profit/loss tracking
-- **Drawdown Management**: Maximum drawdown monitoring
-- **Win Rate Optimization**: Strategy refinement based on success rates
-- **Return Analysis**: Total return and risk-adjusted returns
+- **Advanced Metrics**: Sharpe ratio, Sortino ratio, Calmar ratio
+- **Risk Metrics**: Value at Risk (VaR), Conditional VaR, Maximum Drawdown
+- **Drawdown Management**: Dynamic position size reduction during drawdowns
+- **Win Rate Optimization**: Kelly Criterion-based strategy refinement
+- **Return Analysis**: Risk-adjusted returns with volatility normalization
+- **Market Regime Detection**: Adaptive parameters for trending/ranging/volatile markets
 
 ## Maintenance & Support
 

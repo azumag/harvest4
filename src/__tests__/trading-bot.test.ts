@@ -3,15 +3,18 @@ import { TradingBot, TradingBotConfig } from '../bot/trading-bot';
 import { BitbankClient } from '../api/bitbank-client';
 import { TradingStrategy } from '../strategies/trading-strategy';
 import { ProfitCalculator } from '../utils/profit-calculator';
+import { DynamicRiskManager } from '../utils/dynamic-risk-manager';
 
 // Mock the dependencies
 jest.mock('../api/bitbank-client');
 jest.mock('../strategies/trading-strategy');
 jest.mock('../utils/profit-calculator');
+jest.mock('../utils/dynamic-risk-manager');
 
 const MockedBitbankClient = BitbankClient as jest.MockedClass<typeof BitbankClient>;
 const MockedTradingStrategy = TradingStrategy as jest.MockedClass<typeof TradingStrategy>;
 const MockedProfitCalculator = ProfitCalculator as jest.MockedClass<typeof ProfitCalculator>;
+const MockedDynamicRiskManager = DynamicRiskManager as jest.MockedClass<typeof DynamicRiskManager>;
 
 describe('TradingBot', () => {
   let bot: TradingBot;
@@ -19,6 +22,7 @@ describe('TradingBot', () => {
   let mockClient: jest.Mocked<BitbankClient>;
   let mockStrategy: jest.Mocked<TradingStrategy>;
   let mockProfitCalculator: jest.Mocked<ProfitCalculator>;
+  let mockRiskManager: jest.Mocked<DynamicRiskManager>;
 
   beforeEach(() => {
     config = {
@@ -29,8 +33,16 @@ describe('TradingBot', () => {
       initialBalance: 100000,
       maxConcurrentTrades: 3,
       tradingInterval: 30000,
-      stopLossPercentage: 2,
-      takeProfitPercentage: 4,
+      riskManager: {
+        initialBalance: 100000,
+        maxDrawdown: 0.15,
+        maxPositionSize: 10000,
+        minPositionSize: 1000,
+        atrPeriod: 14,
+        atrMultiplierStop: 2.0,
+        atrMultiplierTarget: 3.0,
+        minRiskRewardRatio: 1.5,
+      },
       strategy: {
         buyThreshold: 0.02,
         sellThreshold: 0.02,
@@ -66,10 +78,21 @@ describe('TradingBot', () => {
       getOpenPositions: jest.fn(),
     } as any;
 
+    mockRiskManager = {
+      updateMarketData: jest.fn(),
+      calculateOptimalPositionSize: jest.fn().mockReturnValue(1000),
+      calculateDynamicStopLoss: jest.fn().mockReturnValue(4500000),
+      calculateDynamicTakeProfit: jest.fn().mockReturnValue(5500000),
+      addPosition: jest.fn(),
+      removePosition: jest.fn().mockReturnValue(true),
+      positions: new Map(),
+    } as any;
+
     // Mock constructors
     MockedBitbankClient.mockImplementation(() => mockClient);
     MockedTradingStrategy.mockImplementation(() => mockStrategy);
     MockedProfitCalculator.mockImplementation(() => mockProfitCalculator);
+    MockedDynamicRiskManager.mockImplementation(() => mockRiskManager);
 
     bot = new TradingBot(config);
   });
@@ -273,7 +296,7 @@ describe('TradingBot', () => {
       mockClient.cancelOrder.mockResolvedValue({} as any);
       mockClient.createOrder.mockResolvedValue({} as any);
 
-      await (bot as any).checkStopLossAndTakeProfit(ticker);
+      await (bot as any).checkDynamicStops(ticker);
 
       expect(mockClient.cancelOrder).toHaveBeenCalledWith(config.pair, 12345);
       expect(mockClient.createOrder).toHaveBeenCalledWith({
@@ -309,7 +332,7 @@ describe('TradingBot', () => {
       mockClient.cancelOrder.mockResolvedValue({} as any);
       mockClient.createOrder.mockResolvedValue({} as any);
 
-      await (bot as any).checkStopLossAndTakeProfit(ticker);
+      await (bot as any).checkDynamicStops(ticker);
 
       expect(mockClient.cancelOrder).toHaveBeenCalledWith(config.pair, 12345);
       expect(mockClient.createOrder).toHaveBeenCalledWith({

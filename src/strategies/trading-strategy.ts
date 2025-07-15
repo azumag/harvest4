@@ -179,8 +179,9 @@ export class TradingStrategy {
     }
 
     // Apply minimum profit margin check
+    const MIN_PROFIT_JPY = 100; // Minimum 100 JPY profit threshold
     const expectedProfit = signal.amount * signal.price * this.config.minProfitMargin;
-    if (expectedProfit < 100) { // Minimum 100 JPY profit
+    if (expectedProfit < MIN_PROFIT_JPY) {
       return {
         ...signal,
         action: 'hold',

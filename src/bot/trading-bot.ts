@@ -1,6 +1,7 @@
 import { BitbankClient } from '../api/bitbank-client';
 import { TradingStrategy, TradingStrategyConfig } from '../strategies/trading-strategy';
 import { ProfitCalculator } from '../utils/profit-calculator';
+import { DynamicRiskManager, RiskManagerConfig } from '../utils/dynamic-risk-manager';
 import { BitbankConfig, TradingSignal, TradingPosition, BitbankTicker } from '../types/bitbank';
 
 export interface TradingBotConfig extends BitbankConfig {
@@ -9,14 +10,14 @@ export interface TradingBotConfig extends BitbankConfig {
   initialBalance: number;
   maxConcurrentTrades: number;
   tradingInterval: number;
-  stopLossPercentage: number;
-  takeProfitPercentage: number;
+  riskManager: RiskManagerConfig;
 }
 
 export class TradingBot {
   private client: BitbankClient;
   private strategy: TradingStrategy;
   private profitCalculator: ProfitCalculator;
+  private dynamicRiskManager: DynamicRiskManager;
   private config: TradingBotConfig;
   private isRunning = false;
   private activePositions: Map<string, TradingPosition> = new Map();
@@ -28,6 +29,7 @@ export class TradingBot {
     this.client = new BitbankClient(config);
     this.strategy = new TradingStrategy(config.strategy);
     this.profitCalculator = new ProfitCalculator(config.initialBalance);
+    this.dynamicRiskManager = new DynamicRiskManager(config.riskManager);
   }
 
   async start(): Promise<void> {
@@ -95,11 +97,14 @@ export class TradingBot {
     // Get current market data
     const ticker = await this.client.getTicker(this.config.pair);
     
+    // Update risk manager with market data
+    this.dynamicRiskManager.updateMarketData(ticker);
+    
     // Generate trading signal
     const signal = this.strategy.generateSignal(ticker);
     
     // Check stop loss and take profit for existing positions
-    await this.checkStopLossAndTakeProfit(ticker);
+    await this.checkDynamicStops(ticker);
     
     // Execute trades based on signal
     await this.executeSignal(signal);
@@ -125,11 +130,20 @@ export class TradingBot {
     }
 
     try {
-      const orderId = await this.placeOrder(signal);
+      // Calculate optimal position size using dynamic risk management
+      const optimalSize = this.dynamicRiskManager.calculateOptimalPositionSize(signal.price);
+      
+      // Use the smaller of the signal amount or optimal size
+      const adjustedAmount = Math.min(signal.amount, optimalSize);
+      
+      // Create adjusted signal with dynamic position sizing
+      const adjustedSignal = { ...signal, amount: adjustedAmount };
+      
+      const orderId = await this.placeOrder(adjustedSignal);
       if (orderId) {
         const position: TradingPosition = {
           side: signal.action as 'buy' | 'sell',
-          amount: signal.amount,
+          amount: adjustedAmount,
           price: signal.price,
           timestamp: now,
           orderId,
@@ -139,8 +153,12 @@ export class TradingBot {
         this.activePositions.set(positionId, position);
         this.profitCalculator.addPosition(positionId, position);
         
+        // Register position with dynamic risk manager
+        const riskManagerSide = position.side === 'buy' ? 'long' : 'short';
+        this.dynamicRiskManager.addPosition(positionId, riskManagerSide, position.amount, position.price);
+        
         this.lastTradeTime = now;
-        console.log(`Order placed: ${signal.action} ${signal.amount} BTC at ${signal.price} JPY`);
+        console.log(`Order placed: ${signal.action} ${adjustedAmount} BTC at ${signal.price} JPY (Dynamic sizing applied)`);
       }
     } catch (error) {
       console.error('Order execution error:', error);
@@ -164,34 +182,35 @@ export class TradingBot {
     }
   }
 
-  private async checkStopLossAndTakeProfit(ticker: BitbankTicker): Promise<void> {
+  private async checkDynamicStops(ticker: BitbankTicker): Promise<void> {
     const currentPrice = parseFloat(ticker.last);
 
     for (const [positionId, position] of this.activePositions) {
       let shouldClose = false;
       let reason = '';
 
-      if (position.side === 'buy') {
-        const stopLossPrice = position.price * (1 - this.config.stopLossPercentage / 100);
-        const takeProfitPrice = position.price * (1 + this.config.takeProfitPercentage / 100);
+      // Convert trading position side to risk manager format
+      const side = position.side === 'buy' ? 'long' : 'short';
+      
+      // Calculate dynamic stop loss and take profit levels
+      const stopLossPrice = this.dynamicRiskManager.calculateDynamicStopLoss(side, position.price);
+      const takeProfitPrice = this.dynamicRiskManager.calculateDynamicTakeProfit(side, position.price);
 
+      if (position.side === 'buy') {
         if (currentPrice <= stopLossPrice) {
           shouldClose = true;
-          reason = 'Stop loss triggered';
+          reason = 'Dynamic stop loss triggered';
         } else if (currentPrice >= takeProfitPrice) {
           shouldClose = true;
-          reason = 'Take profit triggered';
+          reason = 'Dynamic take profit triggered';
         }
       } else {
-        const stopLossPrice = position.price * (1 + this.config.stopLossPercentage / 100);
-        const takeProfitPrice = position.price * (1 - this.config.takeProfitPercentage / 100);
-
         if (currentPrice >= stopLossPrice) {
           shouldClose = true;
-          reason = 'Stop loss triggered';
+          reason = 'Dynamic stop loss triggered';
         } else if (currentPrice <= takeProfitPrice) {
           shouldClose = true;
-          reason = 'Take profit triggered';
+          reason = 'Dynamic take profit triggered';
         }
       }
 
@@ -225,6 +244,9 @@ export class TradingBot {
       // Record the trade
       const trade = this.profitCalculator.closePosition(positionId, exitPrice, Date.now());
       this.activePositions.delete(positionId);
+
+      // Remove position from risk manager
+      this.dynamicRiskManager.removePosition(positionId);
 
       console.log(`Position closed: ${reason}`);
       if (trade) {

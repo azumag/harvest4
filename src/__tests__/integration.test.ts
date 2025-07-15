@@ -27,8 +27,10 @@ describe('Integration Tests', () => {
       expect(config.initialBalance).toBe(100000);
       expect(config.maxConcurrentTrades).toBe(3);
       expect(config.tradingInterval).toBe(30000);
-      expect(config.stopLossPercentage).toBe(2);
-      expect(config.takeProfitPercentage).toBe(4);
+      expect(config.riskManager).toBeDefined();
+      expect(config.riskManager.maxDrawdown).toBe(0.15);
+      expect(config.riskManager.atrMultiplierStop).toBe(2.0);
+      expect(config.riskManager.atrMultiplierTarget).toBe(3.0);
     });
 
     it('should throw error when API key is missing', () => {
@@ -77,8 +79,8 @@ describe('Integration Tests', () => {
 
       const config = createTradingBotConfig();
 
-      expect(config.stopLossPercentage).toBe(2);
-      expect(config.takeProfitPercentage).toBe(4);
+      expect(config.riskManager.atrMultiplierStop).toBe(2.0);
+      expect(config.riskManager.atrMultiplierTarget).toBe(3.0);
       expect(config.maxConcurrentTrades).toBe(3);
     });
   });
@@ -100,8 +102,8 @@ describe('Integration Tests', () => {
       expect(config.initialBalance).toBeGreaterThan(0);
       expect(config.maxConcurrentTrades).toBeGreaterThan(0);
       expect(config.tradingInterval).toBeGreaterThan(0);
-      expect(config.stopLossPercentage).toBeGreaterThan(0);
-      expect(config.takeProfitPercentage).toBeGreaterThan(0);
+      expect(config.riskManager.atrMultiplierStop).toBeGreaterThan(0);
+      expect(config.riskManager.atrMultiplierTarget).toBeGreaterThan(0);
       
       // Verify strategy configuration
       expect(config.strategy.buyThreshold).toBeGreaterThan(0);

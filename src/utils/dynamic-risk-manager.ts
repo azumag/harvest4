@@ -264,6 +264,10 @@ export class DynamicRiskManager {
     this.positions.set(id, position);
   }
 
+  removePosition(id: string): boolean {
+    return this.positions.delete(id);
+  }
+
   updatePositionPrice(id: string, currentPrice: number): void {
     const position = this.positions.get(id);
     if (!position) return;
