@@ -1,5 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { createHmac } from 'crypto';
+import { Agent as HttpAgent } from 'http';
+import { Agent as HttpsAgent } from 'https';
 import {
   BitbankConfig,
   BitbankTicker,
@@ -47,13 +49,13 @@ export class OptimizedBitbankClient {
         'Content-Type': 'application/json',
       },
       // Connection pooling configuration
-      httpAgent: new (require('http').Agent)({
+      httpAgent: new HttpAgent({
         keepAlive: true,
         keepAliveMsecs: 30000,
         maxSockets: 10,
         maxFreeSockets: 5,
       }),
-      httpsAgent: new (require('https').Agent)({
+      httpsAgent: new HttpsAgent({
         keepAlive: true,
         keepAliveMsecs: 30000,
         maxSockets: 10,

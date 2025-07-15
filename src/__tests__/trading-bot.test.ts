@@ -143,7 +143,6 @@ describe('TradingBot', () => {
 
     it('should throw error if already running', async () => {
       // Mock the trading loop to prevent infinite running
-      const originalTradingLoop = (bot as any).tradingLoop;
       (bot as any).tradingLoop = jest.fn().mockResolvedValue(undefined);
 
       await bot.start();

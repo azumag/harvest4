@@ -396,7 +396,8 @@ export class MultiPairTradingBot {
     return found ? found.correlation : 0;
   }
 
-  private async executeSignals(signals: TradingSignal[], _tickerMap: Map<string, BitbankTicker>): Promise<void> {
+  private async executeSignals(signals: TradingSignal[], tickerMap: Map<string, BitbankTicker>): Promise<void> {
+    // tickerMap could be used for additional context in future enhancements
     const totalActiveTrades = Array.from(this.pairStates.values())
       .reduce((sum, state) => sum + state.activePositions.size, 0);
 

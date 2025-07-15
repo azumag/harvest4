@@ -1,3 +1,5 @@
+import { totalmem } from 'os';
+
 export interface PerformanceMetrics {
   operationName: string;
   startTime: number;
@@ -109,7 +111,7 @@ export class PerformanceMonitor {
   private startSystemMonitoring(): void {
     this.monitoringInterval = setInterval(() => {
       const memUsage = process.memoryUsage();
-      const totalMemory = require('os').totalmem();
+      const totalMemory = totalmem();
       
       const systemMetric: SystemMetrics = {
         cpu: process.cpuUsage().user / 1000000, // Convert to seconds
