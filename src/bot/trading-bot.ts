@@ -128,7 +128,7 @@ export class TradingBot {
       const orderId = await this.placeOrder(signal);
       if (orderId) {
         const position: TradingPosition = {
-          side: signal.action,
+          side: signal.action as 'buy' | 'sell',
           amount: signal.amount,
           price: signal.price,
           timestamp: now,
@@ -153,7 +153,7 @@ export class TradingBot {
         pair: this.config.pair,
         amount: signal.amount.toString(),
         price: signal.price.toString(),
-        side: signal.action,
+        side: signal.action as 'buy' | 'sell',
         type: 'limit',
       });
 

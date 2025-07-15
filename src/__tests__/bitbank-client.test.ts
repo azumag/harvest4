@@ -9,6 +9,7 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 describe('BitbankClient', () => {
   let client: BitbankClient;
   let config: BitbankConfig;
+  let mockAxiosInstance: any;
 
   beforeEach(() => {
     config = {
@@ -17,11 +18,12 @@ describe('BitbankClient', () => {
       baseUrl: 'https://api.bitbank.cc',
     };
 
-    mockedAxios.create.mockReturnValue({
+    mockAxiosInstance = {
       get: jest.fn(),
       post: jest.fn(),
       defaults: { timeout: 10000 },
-    } as any);
+    };
+    mockedAxios.create.mockReturnValue(mockAxiosInstance);
 
     client = new BitbankClient(config);
   });
@@ -54,8 +56,7 @@ describe('BitbankClient', () => {
         config: {} as any,
       };
 
-      const mockAxiosInstance = mockedAxios.create();
-      (mockAxiosInstance.get as jest.Mock).mockResolvedValue(mockResponse);
+      mockAxiosInstance.get.mockResolvedValue(mockResponse);
 
       const result = await client.getTicker('btc_jpy');
 
@@ -75,8 +76,7 @@ describe('BitbankClient', () => {
         config: {} as any,
       };
 
-      const mockAxiosInstance = mockedAxios.create();
-      (mockAxiosInstance.get as jest.Mock).mockResolvedValue(mockResponse);
+      mockAxiosInstance.get.mockResolvedValue(mockResponse);
 
       await expect(client.getTicker('btc_jpy')).rejects.toThrow('Failed to get ticker data');
     });
@@ -117,8 +117,7 @@ describe('BitbankClient', () => {
         config: {} as any,
       };
 
-      const mockAxiosInstance = mockedAxios.create();
-      (mockAxiosInstance.post as jest.Mock).mockResolvedValue(mockResponse);
+      mockAxiosInstance.post.mockResolvedValue(mockResponse);
 
       const result = await client.createOrder(orderRequest);
 
@@ -156,8 +155,7 @@ describe('BitbankClient', () => {
         config: {} as any,
       };
 
-      const mockAxiosInstance = mockedAxios.create();
-      (mockAxiosInstance.post as jest.Mock).mockResolvedValue(mockResponse);
+      mockAxiosInstance.post.mockResolvedValue(mockResponse);
 
       await expect(client.createOrder(orderRequest)).rejects.toThrow('Failed to create order');
     });
