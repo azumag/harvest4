@@ -3,6 +3,7 @@ import { TradingStrategyConfig } from '../strategies/trading-strategy';
 import {
   HistoricalDataPoint,
   BacktestConfig,
+  BacktestResult,
   OptimizationConfig,
   OptimizationParameter,
   OptimizationResult,
@@ -211,7 +212,7 @@ export class ParameterOptimizer {
         results.push({
           parameters: individual,
           fitness: -Infinity,
-          backtest: {} as any,
+          backtest: {} as Partial<BacktestResult>,
           metrics: {
             return: -Infinity,
             sharpeRatio: -Infinity,

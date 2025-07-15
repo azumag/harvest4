@@ -67,10 +67,7 @@ export class TradingBot {
       
       // Check balance
       const balances = await this.client.getBalance();
-      const jpyBalance = balances.find(b => b.asset === 'jpy');
-      const btcBalance = balances.find(b => b.asset === 'btc');
-      
-      // Current balances
+      // Get current balances
       // JPY balance
       // BTC balance
       
@@ -201,7 +198,7 @@ export class TradingBot {
     }
   }
 
-  private async closePosition(positionId: string, exitPrice: number, reason: string): Promise<void> {
+  private async closePosition(positionId: string, exitPrice: number, _reason: string): Promise<void> {
     const position = this.activePositions.get(positionId);
     if (!position) {
       return;
@@ -244,8 +241,7 @@ export class TradingBot {
     }
   }
 
-  private logTradingStatus(signal: TradingSignal): void {
-    const metrics = this.profitCalculator.calculateProfitMetrics();
+  private logTradingStatus(_signal: TradingSignal): void {
     // Trading status update
   }
 
