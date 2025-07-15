@@ -69,16 +69,17 @@ describe('TradingStrategy', () => {
     });
 
     it('should generate buy signal for upward trend', () => {
-      // Create strong upward trend with low volatility
+      // Create strong upward trend: need momentum > 0.02 over 9 periods (10th period ago vs current)
+      // 5000000 to 5150000 = 3% increase over 9 periods = momentum > 0.02
       const prices = [];
       for (let i = 0; i < 20; i++) {
-        prices.push(5000000 + i * 2500); // Smaller increments for lower volatility
+        prices.push(5000000 + i * 7500); // Larger increments to create momentum > 0.02
       }
       
       prices.forEach(price => strategy.updatePrice(price));
 
       // High volume ticker to meet volume requirement > 1000
-      const ticker = createMockTicker('5047500', '5000');
+      const ticker = createMockTicker('5142500', '5000');
       const signal = strategy.generateSignal(ticker);
 
       expect(signal.action).toBe('buy');
@@ -88,16 +89,17 @@ describe('TradingStrategy', () => {
     });
 
     it('should generate sell signal for downward trend', () => {
-      // Create strong downward trend with low volatility
+      // Create strong downward trend: need momentum < -0.02 over 9 periods
+      // 5500000 to 5350000 = -2.7% decrease over 9 periods = momentum < -0.02
       const prices = [];
       for (let i = 0; i < 20; i++) {
-        prices.push(5500000 - i * 2500); // Smaller decrements for lower volatility
+        prices.push(5500000 - i * 7500); // Larger decrements to create momentum < -0.02
       }
       
       prices.forEach(price => strategy.updatePrice(price));
 
       // High volume ticker to meet volume requirement > 1000
-      const ticker = createMockTicker('5452500', '5000');
+      const ticker = createMockTicker('5357500', '5000');
       const signal = strategy.generateSignal(ticker);
 
       expect(signal.action).toBe('sell');
@@ -126,16 +128,21 @@ describe('TradingStrategy', () => {
 
   describe('risk management', () => {
     it('should reject low confidence signals', () => {
-      // Create very small trend that results in low confidence
+      // Create minimal trend that passes signal generation but fails confidence
+      // Need momentum just above 0.02 but confidence < 0.6
+      // confidence = momentum * 10 * (1 - volatility), so 0.025 * 10 * 0.8 = 0.2 < 0.6
       const prices = [];
       for (let i = 0; i < 20; i++) {
-        prices.push(5000000 + i * 500); // Very small increase for low momentum/confidence
+        // Create moderate volatility and just-above-threshold momentum
+        const baseIncrease = i * 1250; // 2.5% over 9 periods
+        const noise = i % 2 === 0 ? 10000 : -10000; // Add volatility
+        prices.push(5000000 + baseIncrease + noise);
       }
       
       prices.forEach(price => strategy.updatePrice(price));
 
-      // High volume to pass volume check, but tiny momentum for low confidence
-      const ticker = createMockTicker('5009500', '2000');
+      // High volume to pass volume check
+      const ticker = createMockTicker('5112500', '2000');
       const signal = strategy.generateSignal(ticker);
 
       expect(signal.action).toBe('hold');
@@ -150,15 +157,18 @@ describe('TradingStrategy', () => {
       
       const lowProfitStrategy = new TradingStrategy(lowProfitConfig);
       
-      // Create strong upward trend with low volatility that would normally trigger a buy
+      // Create strong upward trend with low volatility that passes confidence check
+      // Need momentum > 0.02 and low volatility for high confidence
       const prices = [];
       for (let i = 0; i < 20; i++) {
-        prices.push(5000000 + i * 2500); // Strong trend with low volatility
+        prices.push(5000000 + i * 7500); // Strong consistent trend: 3% over 9 periods
       }
       
       prices.forEach(price => lowProfitStrategy.updatePrice(price));
 
-      const ticker = createMockTicker('5047500', '5000');
+      // expectedProfit = amount * price * minProfitMargin
+      // With maxTradeAmount=1 and price=5142500, amount ≈ 0.0000002, profit ≈ 0.01 JPY < 100
+      const ticker = createMockTicker('5142500', '5000');
       const signal = lowProfitStrategy.generateSignal(ticker);
 
       expect(signal.action).toBe('hold');
