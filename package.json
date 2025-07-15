@@ -10,8 +10,17 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:integration": "jest --testNamePattern=\"Integration Tests\"",
+    "test:performance": "jest --testNamePattern=\"Performance Testing\"",
+    "test:security": "jest --testNamePattern=\"Security Testing\"",
+    "test:financial": "jest --testNamePattern=\"Financial Accuracy\"",
+    "test:market-sim": "jest --testNamePattern=\"Market Simulation\"",
+    "test:qa": "jest --testNamePattern=\"Quality Assurance\"",
+    "test:all-enhanced": "npm run test:integration && npm run test:performance && npm run test:security && npm run test:financial && npm run test:market-sim",
     "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix"
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "quality-check": "npm run lint && npm run build && npm run test:coverage",
+    "pre-commit": "npm run quality-check"
   },
   "keywords": [
     "bitcoin",

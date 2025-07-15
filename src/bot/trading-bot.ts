@@ -148,6 +148,10 @@ export class TradingBot {
   }
 
   private async placeOrder(signal: TradingSignal): Promise<number | null> {
+    if (signal.action === 'hold') {
+      return null;
+    }
+    
     try {
       const order = await this.client.createOrder({
         pair: this.config.pair,
