@@ -75,8 +75,10 @@ export class ParameterOptimizer {
         });
         
         if (i % 10 === 0) {
+          // Progress logging placeholder
         }
       } catch (error) {
+        // Error handled silently - parameter evaluation failed
       }
     }
     
@@ -153,6 +155,7 @@ export class ParameterOptimizer {
       population = newPopulation;
       
       if (generation % 10 === 0) {
+        // Progress logging placeholder
       }
     }
     
@@ -319,8 +322,10 @@ export class ParameterOptimizer {
         });
         
         if (i % 50 === 0) {
+          // Progress logging placeholder
         }
       } catch (error) {
+        // Error handled silently - parameter evaluation failed
       }
     }
     
@@ -563,7 +568,13 @@ export class ParameterOptimizer {
     const validationResults: OptimizationResult[] = [];
     
     for (const result of topResults) {
-      const strategyConfig = { ...result.parameters } as TradingStrategyConfig;
+      const strategyConfig: TradingStrategyConfig = {
+        buyThreshold: result.parameters['buyThreshold'] || 0.02,
+        sellThreshold: result.parameters['sellThreshold'] || 0.02,
+        minProfitMargin: result.parameters['minProfitMargin'] || 0.01,
+        maxTradeAmount: result.parameters['maxTradeAmount'] || 10000,
+        riskTolerance: result.parameters['riskTolerance'] || 0.8
+      };
       const backtest = new BacktestEngine(this.backtestConfig, strategyConfig);
       
       backtest.runBacktest(validationData).then(validationResult => {

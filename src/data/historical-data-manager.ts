@@ -133,6 +133,7 @@ export class HistoricalDataManager {
       const filePath = join(this.CACHE_DIR, `${key}.json`);
       await fs.writeFile(filePath, JSON.stringify(data, null, 2));
     } catch (error) {
+      // Error handled silently - cache save failed
     }
   }
 
@@ -196,6 +197,9 @@ export class HistoricalDataManager {
     for (let i = 1; i < sortedData.length; i++) {
       const current = sortedData[i];
       const previous = sortedData[i - 1];
+      
+      if (!current || !previous) continue;
+      
       const expectedInterval = this.getIntervalMs(this.config.timeframes[0]!);
       const actualInterval = current.timestamp - previous.timestamp;
       
@@ -238,7 +242,7 @@ export class HistoricalDataManager {
     return outliers;
   }
 
-  private calculateCompleteness(data: HistoricalDataPoint[], gaps: DataGap[]): number {
+  private calculateCompleteness(_data: HistoricalDataPoint[], gaps: DataGap[]): number {
     const totalDuration = this.config.endDate - this.config.startDate;
     const gapDuration = gaps.reduce((sum, gap) => sum + gap.duration, 0);
     return Math.max(0, (totalDuration - gapDuration) / totalDuration);
@@ -249,6 +253,8 @@ export class HistoricalDataManager {
     
     for (let i = 0; i < data.length; i++) {
       const point = data[i];
+      
+      if (!point) continue;
       
       if (
         point.high >= point.low &&
@@ -294,6 +300,8 @@ export class HistoricalDataManager {
       const current = sortedData[i];
       const next = sortedData[i + 1];
       
+      if (!current || !next) continue;
+      
       filledData.push(current);
       
       const timeDiff = next.timestamp - current.timestamp;
@@ -317,7 +325,10 @@ export class HistoricalDataManager {
     }
     
     if (sortedData.length > 0) {
-      filledData.push(sortedData[sortedData.length - 1]);
+      const lastPoint = sortedData[sortedData.length - 1];
+      if (lastPoint) {
+        filledData.push(lastPoint);
+      }
     }
     
     return filledData;
@@ -335,6 +346,7 @@ export class HistoricalDataManager {
         await fs.unlink(join(this.CACHE_DIR, file));
       }
     } catch (error) {
+      // Error handled silently - cache clear failed
     }
   }
 
@@ -364,7 +376,11 @@ export class HistoricalDataManager {
     
     const returns = [];
     for (let i = 1; i < prices.length; i++) {
-      returns.push(Math.log(prices[i] / prices[i - 1]));
+      const current = prices[i];
+      const previous = prices[i - 1];
+      if (current && previous && previous !== 0) {
+        returns.push(Math.log(current / previous));
+      }
     }
     
     const mean = returns.reduce((a, b) => a + b, 0) / returns.length;

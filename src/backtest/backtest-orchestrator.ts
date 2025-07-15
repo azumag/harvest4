@@ -136,11 +136,23 @@ export class BacktestOrchestrator {
     const optimizationResults = await this.optimizeParameters(baseStrategy, optimizationConfig);
     
     const bestStrategy = optimizationResults[0];
-    const optimizedBacktest = await this.runBacktest(bestStrategy.parameters as TradingStrategyConfig);
+    if (!bestStrategy) {
+      throw new Error('No optimization results found');
+    }
+    
+    const optimizedStrategyConfig: TradingStrategyConfig = {
+      buyThreshold: bestStrategy.parameters['buyThreshold'] || 0.02,
+      sellThreshold: bestStrategy.parameters['sellThreshold'] || 0.02,
+      minProfitMargin: bestStrategy.parameters['minProfitMargin'] || 0.01,
+      maxTradeAmount: bestStrategy.parameters['maxTradeAmount'] || 10000,
+      riskTolerance: bestStrategy.parameters['riskTolerance'] || 0.8
+    };
+    
+    const optimizedBacktest = await this.runBacktest(optimizedStrategyConfig);
     
     const strategies = [
       { name: 'Baseline', config: baseStrategy },
-      { name: 'Optimized', config: bestStrategy.parameters as TradingStrategyConfig }
+      { name: 'Optimized', config: optimizedStrategyConfig }
     ];
     
     const comparison = await this.compareStrategies(strategies);
@@ -148,7 +160,7 @@ export class BacktestOrchestrator {
     let walkForwardResult: WalkForwardResult | undefined;
     if (walkForwardConfig) {
       walkForwardResult = await this.runWalkForwardAnalysis(
-        bestStrategy.parameters as TradingStrategyConfig,
+        optimizedStrategyConfig,
         optimizationConfig,
         walkForwardConfig
       );

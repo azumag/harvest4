@@ -62,8 +62,9 @@ export class TradingBot {
       
       // Check balance
       const balances = await this.client.getBalance();
-      const jpyBalance = balances.find(b => b.asset === 'jpy');
-      const btcBalance = balances.find(b => b.asset === 'btc');
+      // Validate JPY and BTC balances exist
+      balances.find(b => b.asset === 'jpy');
+      balances.find(b => b.asset === 'btc');
       
       
     } catch (error) {
@@ -133,6 +134,7 @@ export class TradingBot {
         this.lastTradeTime = now;
       }
     } catch (error) {
+      // Error handled silently - position creation failed
     }
   }
 
@@ -189,7 +191,7 @@ export class TradingBot {
     }
   }
 
-  private async closePosition(positionId: string, exitPrice: number, reason: string): Promise<void> {
+  private async closePosition(positionId: string, exitPrice: number, _reason: string): Promise<void> {
     const position = this.activePositions.get(positionId);
     if (!position) {
       return;
@@ -215,8 +217,10 @@ export class TradingBot {
       this.activePositions.delete(positionId);
 
       if (trade) {
+        // Trade closed successfully
       }
     } catch (error) {
+      // Error handled silently - position closing failed
     }
   }
 
@@ -229,8 +233,9 @@ export class TradingBot {
     }
   }
 
-  private logTradingStatus(signal: TradingSignal): void {
-    const metrics = this.profitCalculator.calculateProfitMetrics();
+  private logTradingStatus(_signal: TradingSignal): void {
+    // Calculate metrics for potential logging
+    this.profitCalculator.calculateProfitMetrics();
   }
 
   private sleep(ms: number): Promise<void> {

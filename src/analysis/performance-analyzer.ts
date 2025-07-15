@@ -485,7 +485,7 @@ interface RiskMetrics {
   alpha: number;
 }
 
-interface PerformanceReport {
+export interface PerformanceReport {
   summary: {
     totalReturn: number;
     totalReturnPercent: number;
