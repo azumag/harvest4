@@ -66,7 +66,7 @@ export class TradingBot {
       // API connection validated
       
       // Check balance
-      const balances = await this.client.getBalance();
+      const _balances = await this.client.getBalance();
       // Get current balances
       // JPY balance
       // BTC balance
