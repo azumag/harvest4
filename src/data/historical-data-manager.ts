@@ -198,7 +198,10 @@ export class HistoricalDataManager {
     for (let i = 1; i < sortedData.length; i++) {
       const current = sortedData[i];
       const previous = sortedData[i - 1];
-      const expectedInterval = this.getIntervalMs(this.config.timeframes[0]!);
+      
+      if (!current || !previous) continue;
+      
+      const expectedInterval = this.getIntervalMs(this.config.timeframes[0] || '1m');
       const actualInterval = current.timestamp - previous.timestamp;
       
       if (actualInterval > expectedInterval * 1.5) {
@@ -240,7 +243,7 @@ export class HistoricalDataManager {
     return outliers;
   }
 
-  private calculateCompleteness(data: HistoricalDataPoint[], gaps: DataGap[]): number {
+  private calculateCompleteness(_data: HistoricalDataPoint[], gaps: DataGap[]): number {
     const totalDuration = this.config.endDate - this.config.startDate;
     const gapDuration = gaps.reduce((sum, gap) => sum + gap.duration, 0);
     return Math.max(0, (totalDuration - gapDuration) / totalDuration);
@@ -251,6 +254,8 @@ export class HistoricalDataManager {
     
     for (let i = 0; i < data.length; i++) {
       const point = data[i];
+      
+      if (!point) continue;
       
       if (
         point.high >= point.low &&
@@ -296,30 +301,37 @@ export class HistoricalDataManager {
       const current = sortedData[i];
       const next = sortedData[i + 1];
       
-      filledData.push(current);
+      if (current) {
+        filledData.push(current);
+      }
       
-      const timeDiff = next.timestamp - current.timestamp;
-      const missingPoints = Math.floor(timeDiff / intervalMs) - 1;
-      
-      if (missingPoints > 0) {
-        for (let j = 1; j <= missingPoints; j++) {
-          const interpolatedTimestamp = current.timestamp + (j * intervalMs);
-          const ratio = j / (missingPoints + 1);
-          
-          filledData.push({
-            timestamp: interpolatedTimestamp,
-            open: this.interpolateValue(current.close, next.open, ratio),
-            high: Math.max(current.close, next.open),
-            low: Math.min(current.close, next.open),
-            close: this.interpolateValue(current.close, next.open, ratio),
-            volume: this.interpolateValue(current.volume, next.volume, ratio)
-          });
+      if (current && next) {
+        const timeDiff = next.timestamp - current.timestamp;
+        const missingPoints = Math.floor(timeDiff / intervalMs) - 1;
+        
+        if (missingPoints > 0) {
+          for (let j = 1; j <= missingPoints; j++) {
+            const interpolatedTimestamp = current.timestamp + (j * intervalMs);
+            const ratio = j / (missingPoints + 1);
+            
+            filledData.push({
+              timestamp: interpolatedTimestamp,
+              open: this.interpolateValue(current.close, next.open, ratio),
+              high: Math.max(current.close, next.open),
+              low: Math.min(current.close, next.open),
+              close: this.interpolateValue(current.close, next.open, ratio),
+              volume: this.interpolateValue(current.volume, next.volume, ratio)
+            });
+          }
         }
       }
     }
     
     if (sortedData.length > 0) {
-      filledData.push(sortedData[sortedData.length - 1]);
+      const lastElement = sortedData[sortedData.length - 1];
+      if (lastElement) {
+        filledData.push(lastElement);
+      }
     }
     
     return filledData;
@@ -367,7 +379,11 @@ export class HistoricalDataManager {
     
     const returns = [];
     for (let i = 1; i < prices.length; i++) {
-      returns.push(Math.log(prices[i] / prices[i - 1]));
+      const current = prices[i];
+      const previous = prices[i - 1];
+      if (current && previous && previous !== 0) {
+        returns.push(Math.log(current / previous));
+      }
     }
     
     const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
