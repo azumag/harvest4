@@ -198,7 +198,10 @@ export class HistoricalDataManager {
     for (let i = 1; i < sortedData.length; i++) {
       const current = sortedData[i];
       const previous = sortedData[i - 1];
-      const expectedInterval = this.getIntervalMs(this.config.timeframes[0]!);
+      
+      if (!current || !previous) continue;
+      
+      const expectedInterval = this.getIntervalMs(this.config.timeframes[0] || '1m');
       const actualInterval = current.timestamp - previous.timestamp;
       
       if (actualInterval > expectedInterval * 1.5) {
@@ -240,7 +243,7 @@ export class HistoricalDataManager {
     return outliers;
   }
 
-  private calculateCompleteness(data: HistoricalDataPoint[], gaps: DataGap[]): number {
+  private calculateCompleteness(_data: HistoricalDataPoint[], gaps: DataGap[]): number {
     const totalDuration = this.config.endDate - this.config.startDate;
     const gapDuration = gaps.reduce((sum, gap) => sum + gap.duration, 0);
     return Math.max(0, (totalDuration - gapDuration) / totalDuration);
@@ -251,6 +254,8 @@ export class HistoricalDataManager {
     
     for (let i = 0; i < data.length; i++) {
       const point = data[i];
+      
+      if (!point) continue;
       
       if (
         point.high >= point.low &&

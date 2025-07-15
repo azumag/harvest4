@@ -449,7 +449,9 @@ export class BacktestEngine {
         const [currentMonthKey, currentEquity] = currentMonth;
         const [, previousEquity] = previousMonth;
         
-        const [year, month] = currentMonthKey.split('-').map(Number);
+        const parts = currentMonthKey.split('-').map(Number);
+        const year = parts[0] || 0;
+        const month = parts[1] || 0;
         const returnValue = currentEquity - previousEquity;
         const returnPercent = previousEquity > 0 ? (returnValue / previousEquity) * 100 : 0;
         

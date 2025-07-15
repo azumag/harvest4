@@ -404,10 +404,10 @@ export class ParameterOptimizer {
       const degradation = this.calculateDegradation(inSampleResult, outOfSampleResult);
       
       segments.push({
-        startDate: this.data[segmentStart].timestamp,
-        endDate: this.data[segmentEnd - 1].timestamp,
-        optimizationPeriod: [this.data[segmentStart].timestamp, this.data[optimizationEnd - 1].timestamp],
-        testPeriod: [this.data[testStart].timestamp, this.data[testEnd - 1].timestamp],
+        startDate: this.data[segmentStart]?.timestamp || 0,
+        endDate: this.data[segmentEnd - 1]?.timestamp || 0,
+        optimizationPeriod: [this.data[segmentStart]?.timestamp || 0, this.data[optimizationEnd - 1]?.timestamp || 0],
+        testPeriod: [this.data[testStart]?.timestamp || 0, this.data[testEnd - 1]?.timestamp || 0],
         bestParameters,
         inSampleResult,
         outOfSampleResult,
@@ -467,13 +467,13 @@ export class ParameterOptimizer {
   }
 
   private calculateStabilityMetrics(segments: WalkForwardSegment[]): StabilityMetrics {
-    const parameterNames = Object.keys(segments[0].bestParameters);
+    const parameterNames = segments.length > 0 ? Object.keys(segments[0]?.bestParameters || {}) : [];
     const parameterStabilities: number[] = [];
     
     parameterNames.forEach(name => {
-      const values = segments.map(s => s.bestParameters[name]);
-      const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
-      const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length;
+      const values = segments.map(s => s.bestParameters[name] || 0);
+      const mean = values.reduce((sum, v) => sum + (v || 0), 0) / values.length;
+      const variance = values.reduce((sum, v) => sum + Math.pow((v || 0) - mean, 2), 0) / values.length;
       const stability = variance > 0 ? 1 / (1 + Math.sqrt(variance)) : 1;
       parameterStabilities.push(stability);
     });
@@ -531,8 +531,15 @@ export class ParameterOptimizer {
     const validationResults: OptimizationResult[] = [];
     
     for (const result of topResults) {
-      const strategyConfig = { ...result.parameters };
-      const backtest = new BacktestEngine(this.backtestConfig, strategyConfig as Record<string, unknown>);
+      const strategyConfig = {
+        ...result.parameters,
+        buyThreshold: result.parameters.buyThreshold || 0.02,
+        sellThreshold: result.parameters.sellThreshold || 0.02,
+        minProfitMargin: result.parameters.minProfitMargin || 0.01,
+        maxTradeAmount: result.parameters.maxTradeAmount || 10000,
+        riskTolerance: result.parameters.riskTolerance || 0.8
+      } as TradingStrategyConfig;
+      const backtest = new BacktestEngine(this.backtestConfig, strategyConfig);
       
       backtest.runBacktest(validationData).then(validationResult => {
         validationResults.push({
@@ -587,7 +594,7 @@ export class ParameterOptimizer {
     const n = x.length;
     const sumX = x.reduce((sum, val) => sum + val, 0);
     const sumY = y.reduce((sum, val) => sum + val, 0);
-    const sumXY = x.reduce((sum, val, i) => sum + val * y[i], 0);
+    const sumXY = x.reduce((sum, val, i) => sum + val * (y[i] || 0), 0);
     const sumX2 = x.reduce((sum, val) => sum + val * val, 0);
     const sumY2 = y.reduce((sum, val) => sum + val * val, 0);
     

@@ -89,6 +89,8 @@ export class MomentumStrategy implements AdvancedTradingStrategy {
     const current = this.priceHistory[this.priceHistory.length - 1];
     const previous = this.priceHistory[this.priceHistory.length - this.config.params.lookbackPeriod];
     
+    if (!current || !previous || previous === 0) return 0;
+    
     return (current - previous) / previous;
   }
 
@@ -99,6 +101,8 @@ export class MomentumStrategy implements AdvancedTradingStrategy {
     
     const current = this.priceHistory[this.priceHistory.length - 1];
     const previous = this.priceHistory[this.priceHistory.length - period];
+    
+    if (!current || !previous || previous === 0) return 0;
     
     return (current - previous) / previous;
   }
@@ -112,7 +116,12 @@ export class MomentumStrategy implements AdvancedTradingStrategy {
     const losses = [];
     
     for (let i = this.priceHistory.length - period; i < this.priceHistory.length; i++) {
-      const change = this.priceHistory[i] - this.priceHistory[i - 1];
+      const current = this.priceHistory[i];
+      const previous = this.priceHistory[i - 1];
+      
+      if (!current || !previous) continue;
+      
+      const change = current - previous;
       if (change > 0) {
         gains.push(change);
         losses.push(0);
@@ -252,7 +261,7 @@ export class MomentumStrategy implements AdvancedTradingStrategy {
     return this.createHoldSignal(ticker, 'Momentum not strong enough');
   }
 
-  private calculateTradeAmount(price: number, confidence: number): number {
+  private calculateTradeAmount(_price: number, confidence: number): number {
     // Base amount scaled by confidence
     const baseAmount = 0.01; // 0.01 BTC base
     return baseAmount * confidence;
@@ -314,7 +323,12 @@ export class MomentumStrategy implements AdvancedTradingStrategy {
     
     const returns = [];
     for (let i = 1; i < this.priceHistory.length; i++) {
-      returns.push((this.priceHistory[i] - this.priceHistory[i-1]) / this.priceHistory[i-1]);
+      const current = this.priceHistory[i];
+      const previous = this.priceHistory[i-1];
+      
+      if (!current || !previous || previous === 0) continue;
+      
+      returns.push((current - previous) / previous);
     }
     
     const mean = returns.reduce((sum, ret) => sum + ret, 0) / returns.length;
