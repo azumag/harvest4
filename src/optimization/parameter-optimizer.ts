@@ -49,6 +49,7 @@ export class ParameterOptimizer {
     
     for (let i = 0; i < parameterCombinations.length; i++) {
       const parameters = parameterCombinations[i];
+      if (!parameters) continue;
       const strategyConfig = { ...baseStrategy, ...parameters };
       
       try {
@@ -92,6 +93,7 @@ export class ParameterOptimizer {
       }
       
       const param = parameters[index];
+      if (!param) return;
       for (let value = param.min; value <= param.max; value += param.step) {
         current[param.name] = value;
         generateCombinations(index + 1, current);
@@ -232,7 +234,10 @@ export class ParameterOptimizer {
     
     for (let i = 0; i < tournamentSize; i++) {
       const randomIndex = Math.floor(Math.random() * results.length);
-      tournament.push(results[randomIndex]);
+      const selected = results[randomIndex];
+      if (selected) {
+        tournament.push(selected);
+      }
     }
     
     return tournament.reduce((best, current) => current.fitness > best.fitness ? current : best);
@@ -248,9 +253,9 @@ export class ParameterOptimizer {
     
     parameters.forEach(param => {
       if (Math.random() < crossoverRate) {
-        child[param.name] = Math.random() < 0.5 ? parent1[param.name] : parent2[param.name];
+        child[param.name] = Math.random() < 0.5 ? (parent1[param.name] ?? param.min) : (parent2[param.name] ?? param.min);
       } else {
-        child[param.name] = parent1[param.name];
+        child[param.name] = parent1[param.name] ?? param.min;
       }
     });
     
@@ -268,7 +273,7 @@ export class ParameterOptimizer {
       if (Math.random() < mutationRate) {
         const range = param.max - param.min;
         const mutation = (Math.random() - 0.5) * range * 0.1; // 10% of range
-        mutated[param.name] = Math.max(param.min, Math.min(param.max, individual[param.name] + mutation));
+        mutated[param.name] = Math.max(param.min, Math.min(param.max, (individual[param.name] ?? param.min) + mutation));
       }
     });
     
@@ -386,10 +391,9 @@ export class ParameterOptimizer {
         continue;
       }
       
-      const bestParameters = optimizationResults[0].parameters;
-      const inSampleResult = optimizationResults[0].backtest;
+      const bestParameters = optimizationResults[0]!.parameters;
+      const inSampleResult = optimizationResults[0]!.backtest;
       
-      const testOptimizer = new ParameterOptimizer(testData, this.backtestConfig);
       const testStrategyConfig = { ...baseStrategy, ...bestParameters };
       const testBacktest = new BacktestEngine(this.backtestConfig, testStrategyConfig);
       const outOfSampleResult = await testBacktest.runBacktest(testData);
@@ -397,10 +401,10 @@ export class ParameterOptimizer {
       const degradation = this.calculateDegradation(inSampleResult, outOfSampleResult);
       
       segments.push({
-        startDate: this.data[segmentStart].timestamp,
-        endDate: this.data[segmentEnd - 1].timestamp,
-        optimizationPeriod: [this.data[segmentStart].timestamp, this.data[optimizationEnd - 1].timestamp],
-        testPeriod: [this.data[testStart].timestamp, this.data[testEnd - 1].timestamp],
+        startDate: this.data[segmentStart]!.timestamp,
+        endDate: this.data[segmentEnd - 1]!.timestamp,
+        optimizationPeriod: [this.data[segmentStart]!.timestamp, this.data[optimizationEnd - 1]!.timestamp],
+        testPeriod: [this.data[testStart]!.timestamp, this.data[testEnd - 1]!.timestamp],
         bestParameters,
         inSampleResult,
         outOfSampleResult,
@@ -431,7 +435,6 @@ export class ParameterOptimizer {
     const outOfSampleResults = segments.map(s => s.outOfSampleResult);
     
     const totalReturn = outOfSampleResults.reduce((sum, r) => sum + r.totalReturnPercent, 0);
-    const averageReturn = totalReturn / outOfSampleResults.length;
     
     const returns = outOfSampleResults.map(r => r.totalReturnPercent / 100);
     const meanReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
@@ -460,13 +463,23 @@ export class ParameterOptimizer {
   }
 
   private calculateStabilityMetrics(segments: WalkForwardSegment[]): StabilityMetrics {
-    const parameterNames = Object.keys(segments[0].bestParameters);
+    if (segments.length === 0) {
+      return {
+        parameterStability: 0,
+        performanceStability: 0,
+        degradationStability: 0,
+        drawdownStability: 0,
+        overallStability: 0
+      };
+    }
+    
+    const parameterNames = Object.keys(segments[0]!.bestParameters);
     const parameterStabilities: number[] = [];
     
     parameterNames.forEach(name => {
-      const values = segments.map(s => s.bestParameters[name]);
-      const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
-      const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length;
+      const values = segments.map(s => s.bestParameters[name]).filter(v => v !== undefined);
+      const mean = values.reduce((sum, v) => sum + (v || 0), 0) / values.length;
+      const variance = values.reduce((sum, v) => sum + Math.pow((v || 0) - mean, 2), 0) / values.length;
       const stability = variance > 0 ? 1 / (1 + Math.sqrt(variance)) : 1;
       parameterStabilities.push(stability);
     });

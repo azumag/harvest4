@@ -278,7 +278,7 @@ export class PerformanceAnalyzer {
     const current = prices[prices.length - 1];
     const previous = prices[prices.length - 1 - period];
     
-    return previous > 0 ? (current - previous) / previous : 0;
+    return (previous && current && previous > 0) ? (current - previous) / previous : 0;
   }
 
   private createSubResult(trades: BacktestTrade[], originalResult: BacktestResult): BacktestResult {
@@ -389,7 +389,7 @@ export class PerformanceAnalyzer {
     return Math.sqrt(downsideVariance);
   }
 
-  private calculateBeta(result: BacktestResult): number {
+  private calculateBeta(_result: BacktestResult): number {
     // Simplified beta calculation (would need benchmark data for accurate calculation)
     return 1.0;
   }

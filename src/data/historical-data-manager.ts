@@ -296,6 +296,8 @@ export class HistoricalDataManager {
       const current = sortedData[i];
       const next = sortedData[i + 1];
       
+      if (!current || !next) continue;
+      
       filledData.push(current);
       
       const timeDiff = next.timestamp - current.timestamp;
@@ -319,7 +321,10 @@ export class HistoricalDataManager {
     }
     
     if (sortedData.length > 0) {
-      filledData.push(sortedData[sortedData.length - 1]);
+      const lastItem = sortedData[sortedData.length - 1];
+      if (lastItem) {
+        filledData.push(lastItem);
+      }
     }
     
     return filledData;
@@ -367,7 +372,11 @@ export class HistoricalDataManager {
     
     const returns = [];
     for (let i = 1; i < prices.length; i++) {
-      returns.push(Math.log(prices[i] / prices[i - 1]));
+      const current = prices[i];
+      const previous = prices[i - 1];
+      if (current !== undefined && previous !== undefined && previous !== 0) {
+        returns.push(Math.log(current / previous));
+      }
     }
     
     const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
