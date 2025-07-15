@@ -3,6 +3,7 @@ import { TradingStrategyConfig } from '../strategies/trading-strategy';
 import {
   HistoricalDataPoint,
   BacktestConfig,
+  BacktestResult,
   OptimizationConfig,
   OptimizationParameter,
   OptimizationResult,
@@ -45,7 +46,7 @@ export class ParameterOptimizer {
     const results: OptimizationResult[] = [];
     const parameterCombinations = this.generateParameterCombinations(config.parameters);
     
-    console.log(`Grid Search: Testing ${parameterCombinations.length} parameter combinations`);
+    // Grid Search: Testing parameter combinations
     
     for (let i = 0; i < parameterCombinations.length; i++) {
       const parameters = parameterCombinations[i];
@@ -72,10 +73,10 @@ export class ParameterOptimizer {
         });
         
         if (i % 10 === 0) {
-          console.log(`Progress: ${i + 1}/${parameterCombinations.length} (${((i + 1) / parameterCombinations.length * 100).toFixed(1)}%)`);
+          // Progress update
         }
       } catch (error) {
-        console.error(`Error optimizing parameters ${JSON.stringify(parameters)}:`, error);
+        // Error optimizing parameters
       }
     }
     
@@ -113,7 +114,7 @@ export class ParameterOptimizer {
     const eliteSize = config.eliteSize || 10;
     const convergenceThreshold = config.convergenceThreshold || 0.001;
     
-    console.log(`Genetic Algorithm: Population=${populationSize}, Generations=${maxGenerations}`);
+    // Genetic Algorithm optimization
     
     let population = this.initializePopulation(config.parameters, populationSize);
     let bestFitness = -Infinity;
@@ -132,7 +133,7 @@ export class ParameterOptimizer {
       }
       
       if (stagnationCount >= 10) {
-        console.log(`Converged after ${generation + 1} generations`);
+        // Converged
         break;
       }
       
@@ -152,7 +153,7 @@ export class ParameterOptimizer {
       population = newPopulation;
       
       if (generation % 10 === 0) {
-        console.log(`Generation ${generation + 1}: Best fitness = ${bestFitness.toFixed(4)}`);
+        // Generation progress
       }
     }
     
@@ -211,7 +212,7 @@ export class ParameterOptimizer {
         results.push({
           parameters: individual,
           fitness: -Infinity,
-          backtest: {} as any,
+          backtest: {} as Partial<BacktestResult>,
           metrics: {
             return: -Infinity,
             sharpeRatio: -Infinity,
@@ -282,7 +283,7 @@ export class ParameterOptimizer {
     const results: OptimizationResult[] = [];
     const maxIterations = config.maxIterations || 1000;
     
-    console.log(`Random Search: Testing ${maxIterations} random parameter combinations`);
+    // Random Search optimization
     
     for (let i = 0; i < maxIterations; i++) {
       const parameters: Record<string, number> = {};
@@ -314,10 +315,10 @@ export class ParameterOptimizer {
         });
         
         if (i % 50 === 0) {
-          console.log(`Progress: ${i + 1}/${maxIterations} (${((i + 1) / maxIterations * 100).toFixed(1)}%)`);
+          // Progress update
         }
       } catch (error) {
-        console.error(`Error optimizing parameters ${JSON.stringify(parameters)}:`, error);
+        // Error optimizing parameters
       }
     }
     
@@ -325,7 +326,7 @@ export class ParameterOptimizer {
   }
 
   private calculateFitness(
-    result: any,
+    result: BacktestResult,
     fitnessFunction: 'return' | 'sharpe' | 'calmar' | 'profit_factor' | 'composite'
   ): number {
     switch (fitnessFunction) {
@@ -344,7 +345,7 @@ export class ParameterOptimizer {
     }
   }
 
-  private calculateCompositeFitness(result: any): number {
+  private calculateCompositeFitness(result: BacktestResult): number {
     const returnScore = Math.max(0, result.totalReturnPercent) / 100;
     const sharpeScore = Math.max(0, result.sharpeRatio) / 3;
     const drawdownPenalty = Math.max(0, result.maxDrawdownPercent) / 100;
@@ -362,7 +363,7 @@ export class ParameterOptimizer {
     const segments: WalkForwardSegment[] = [];
     const dataLength = this.data.length;
     
-    console.log('Starting Walk-Forward Analysis...');
+    // Starting Walk-Forward Analysis
     
     for (let i = 0; i < dataLength - walkForwardConfig.windowSize; i += walkForwardConfig.stepSize) {
       const segmentStart = i;
@@ -389,7 +390,6 @@ export class ParameterOptimizer {
       const bestParameters = optimizationResults[0].parameters;
       const inSampleResult = optimizationResults[0].backtest;
       
-      const testOptimizer = new ParameterOptimizer(testData, this.backtestConfig);
       const testStrategyConfig = { ...baseStrategy, ...bestParameters };
       const testBacktest = new BacktestEngine(this.backtestConfig, testStrategyConfig);
       const outOfSampleResult = await testBacktest.runBacktest(testData);
@@ -407,7 +407,7 @@ export class ParameterOptimizer {
         degradation
       });
       
-      console.log(`Segment ${segments.length}: In-Sample Return: ${inSampleResult.totalReturnPercent.toFixed(2)}%, Out-of-Sample Return: ${outOfSampleResult.totalReturnPercent.toFixed(2)}%, Degradation: ${degradation.toFixed(2)}%`);
+      // Segment analysis complete
     }
     
     const overallMetrics = this.calculateOverallMetrics(segments);
@@ -422,16 +422,15 @@ export class ParameterOptimizer {
     };
   }
 
-  private calculateDegradation(inSample: any, outOfSample: any): number {
+  private calculateDegradation(inSample: BacktestResult, outOfSample: BacktestResult): number {
     if (inSample.totalReturnPercent === 0) return 0;
     return ((inSample.totalReturnPercent - outOfSample.totalReturnPercent) / Math.abs(inSample.totalReturnPercent)) * 100;
   }
 
-  private calculateOverallMetrics(segments: WalkForwardSegment[]): any {
+  private calculateOverallMetrics(segments: WalkForwardSegment[]): PerformanceMetrics {
     const outOfSampleResults = segments.map(s => s.outOfSampleResult);
     
     const totalReturn = outOfSampleResults.reduce((sum, r) => sum + r.totalReturnPercent, 0);
-    const averageReturn = totalReturn / outOfSampleResults.length;
     
     const returns = outOfSampleResults.map(r => r.totalReturnPercent / 100);
     const meanReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
@@ -525,7 +524,7 @@ export class ParameterOptimizer {
     
     for (const result of topResults) {
       const strategyConfig = { ...result.parameters };
-      const backtest = new BacktestEngine(this.backtestConfig, strategyConfig as any);
+      const backtest = new BacktestEngine(this.backtestConfig, strategyConfig as TradingStrategyConfig);
       
       backtest.runBacktest(validationData).then(validationResult => {
         validationResults.push({

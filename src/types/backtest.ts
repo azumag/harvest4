@@ -1,4 +1,4 @@
-import { TradingStrategyConfig } from '../strategies/trading-strategy';
+// Import types as needed
 
 export interface HistoricalDataPoint {
   timestamp: number;
