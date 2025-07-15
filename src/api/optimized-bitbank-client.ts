@@ -88,9 +88,10 @@ export class OptimizedBitbankClient {
       .digest('hex');
   }
 
-  private createAuthHeaders(path: string, body?: string): Record<string, string> {
+  private createAuthHeaders(path: string, body?: string | unknown): Record<string, string> {
     const nonce = Date.now().toString();
-    const message = nonce + path + (body || '');
+    const bodyStr = body ? (typeof body === 'string' ? body : JSON.stringify(body)) : '';
+    const message = nonce + path + bodyStr;
     const signature = this.createSignature(message);
 
     return {
@@ -100,8 +101,9 @@ export class OptimizedBitbankClient {
     };
   }
 
-  private getCacheKey(path: string, body?: string): string {
-    return `${path}${body ? `_${JSON.stringify(body)}` : ''}`;
+  private getCacheKey(path: string, body?: string | unknown): string {
+    const bodyStr = body ? (typeof body === 'string' ? body : JSON.stringify(body)) : '';
+    return `${path}${bodyStr ? `_${bodyStr}` : ''}`;
   }
 
   private getCachedResponse(key: string): unknown | null {
@@ -217,28 +219,28 @@ export class OptimizedBitbankClient {
   }
 
   async getTicker(pair: string): Promise<BitbankTicker> {
-    return this.executeRequest(`/v1/ticker/${pair}`, 'GET', undefined, true, 500); // 500ms cache for ticker
+    return this.executeRequest(`/v1/ticker/${pair}`, 'GET', undefined, true, 500) as Promise<BitbankTicker>; // 500ms cache for ticker
   }
 
   async getBalance(): Promise<BitbankBalance[]> {
-    const result = await this.executeRequest('/v1/user/assets', 'GET', undefined, true, 2000); // 2s cache for balance
+    const result = await this.executeRequest('/v1/user/assets', 'GET', undefined, true, 2000) as { assets: BitbankBalance[] }; // 2s cache for balance
     return result.assets;
   }
 
   async createOrder(orderRequest: BitbankOrderRequest): Promise<BitbankOrder> {
-    return this.executeRequest('/v1/user/spot/order', 'POST', orderRequest, false); // No cache for orders
+    return this.executeRequest('/v1/user/spot/order', 'POST', orderRequest, false) as Promise<BitbankOrder>; // No cache for orders
   }
 
   async getOrder(pair: string, orderId: number): Promise<BitbankOrder> {
-    return this.executeRequest(`/v1/user/spot/order?pair=${pair}&order_id=${orderId}`, 'GET', undefined, true, 1000);
+    return this.executeRequest(`/v1/user/spot/order?pair=${pair}&order_id=${orderId}`, 'GET', undefined, true, 1000) as Promise<BitbankOrder>;
   }
 
   async cancelOrder(pair: string, orderId: number): Promise<BitbankOrder> {
-    return this.executeRequest('/v1/user/spot/cancel_order', 'POST', { pair, order_id: orderId }, false);
+    return this.executeRequest('/v1/user/spot/cancel_order', 'POST', { pair, order_id: orderId }, false) as Promise<BitbankOrder>;
   }
 
   async getActiveOrders(pair: string): Promise<BitbankOrder[]> {
-    const result = await this.executeRequest(`/v1/user/spot/active_orders?pair=${pair}`, 'GET', undefined, true, 1000);
+    const result = await this.executeRequest(`/v1/user/spot/active_orders?pair=${pair}`, 'GET', undefined, true, 1000) as { orders: BitbankOrder[] };
     return result.orders;
   }
 

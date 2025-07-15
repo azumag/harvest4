@@ -24,8 +24,8 @@ interface WorkerStats {
 
 export class WorkerPool {
   private workers: Map<string, WorkerStats> = new Map();
-  private taskQueue: Task[] = [];
-  private activeTasks: Map<string, Task> = new Map();
+  private taskQueue: Task<unknown>[] = [];
+  private activeTasks: Map<string, Task<unknown>> = new Map();
   private readonly maxWorkers: number;
   private readonly defaultTimeout: number;
   private readonly queueCheckInterval: number;
@@ -180,7 +180,7 @@ export class WorkerPool {
         reject,
       };
 
-      this.taskQueue.push(task);
+      this.taskQueue.push(task as Task<unknown>);
     });
   }
 
