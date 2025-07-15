@@ -236,7 +236,7 @@ describe('PerformanceAnalyzer', () => {
       expect(analysis.averageLoss).toBe(150);
       expect(analysis.largestWin).toBe(1500);
       expect(analysis.largestLoss).toBe(-150);
-      expect(analysis.averageHoldingPeriod).toBe(833.33);
+      expect(analysis.averageHoldingPeriod).toBeCloseTo(833.33, 2);
       expect(analysis.winStreak).toBe(2);
       expect(analysis.loseStreak).toBe(1);
     });

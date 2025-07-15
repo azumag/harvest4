@@ -10,7 +10,9 @@ import {
   WalkForwardResult,
   WalkForwardSegment,
   StabilityMetrics,
-  RobustnessMetrics
+  RobustnessMetrics,
+  BacktestResult,
+  PerformanceMetrics
 } from '../types/backtest';
 
 export class ParameterOptimizer {
@@ -213,7 +215,49 @@ export class ParameterOptimizer {
         results.push({
           parameters: individual,
           fitness: -Infinity,
-          backtest: {} as any,
+          backtest: {
+            trades: [],
+            positions: [],
+            initialBalance: 0,
+            finalBalance: 0,
+            totalReturn: -Infinity,
+            totalReturnPercent: -Infinity,
+            maxDrawdown: 100,
+            maxDrawdownPercent: 100,
+            winRate: 0,
+            profitFactor: 0,
+            averageWin: 0,
+            averageLoss: 0,
+            largestWin: 0,
+            largestLoss: 0,
+            totalTrades: 0,
+            winningTrades: 0,
+            losingTrades: 0,
+            averageHoldingPeriod: 0,
+            sharpeRatio: -Infinity,
+            sortinoRatio: -Infinity,
+            calmarRatio: -Infinity,
+            maxRunup: 0,
+            maxRunupPercent: 0,
+            recoveryFactor: 0,
+            expectancy: 0,
+            equityCurve: [],
+            drawdownCurve: [],
+            monthlyReturns: [],
+            annualizedReturn: -Infinity,
+            annualizedVolatility: 0,
+            var95: 0,
+            var99: 0,
+            cvar95: 0,
+            cvar99: 0,
+            skewness: 0,
+            kurtosis: 0,
+            ulcerIndex: 0,
+            gainToPainRatio: 0,
+            sterlingRatio: 0,
+            burkeRatio: 0,
+            martin_ratio: 0
+          },
           metrics: {
             return: -Infinity,
             sharpeRatio: -Infinity,
@@ -330,7 +374,7 @@ export class ParameterOptimizer {
   }
 
   private calculateFitness(
-    result: any,
+    result: BacktestResult,
     fitnessFunction: 'return' | 'sharpe' | 'calmar' | 'profit_factor' | 'composite'
   ): number {
     switch (fitnessFunction) {
@@ -349,7 +393,7 @@ export class ParameterOptimizer {
     }
   }
 
-  private calculateCompositeFitness(result: any): number {
+  private calculateCompositeFitness(result: BacktestResult): number {
     const returnScore = Math.max(0, result.totalReturnPercent) / 100;
     const sharpeScore = Math.max(0, result.sharpeRatio) / 3;
     const drawdownPenalty = Math.max(0, result.maxDrawdownPercent) / 100;
@@ -426,12 +470,12 @@ export class ParameterOptimizer {
     };
   }
 
-  private calculateDegradation(inSample: any, outOfSample: any): number {
+  private calculateDegradation(inSample: BacktestResult, outOfSample: BacktestResult): number {
     if (inSample.totalReturnPercent === 0) return 0;
     return ((inSample.totalReturnPercent - outOfSample.totalReturnPercent) / Math.abs(inSample.totalReturnPercent)) * 100;
   }
 
-  private calculateOverallMetrics(segments: WalkForwardSegment[]): any {
+  private calculateOverallMetrics(segments: WalkForwardSegment[]): PerformanceMetrics {
     const outOfSampleResults = segments.map(s => s.outOfSampleResult);
     
     const totalReturn = outOfSampleResults.reduce((sum, r) => sum + r.totalReturnPercent, 0);
@@ -467,9 +511,9 @@ export class ParameterOptimizer {
       return {
         parameterStability: 0,
         performanceStability: 0,
-        degradationStability: 0,
+        returnStability: 0,
         drawdownStability: 0,
-        overallStability: 0
+        consistencyScore: 0
       };
     }
     
@@ -538,7 +582,7 @@ export class ParameterOptimizer {
     
     for (const result of topResults) {
       const strategyConfig = { ...result.parameters };
-      const backtest = new BacktestEngine(this.backtestConfig, strategyConfig as any);
+      const backtest = new BacktestEngine(this.backtestConfig, strategyConfig as unknown as TradingStrategyConfig);
       
       backtest.runBacktest(validationData).then(validationResult => {
         validationResults.push({
@@ -593,7 +637,7 @@ export class ParameterOptimizer {
     const n = x.length;
     const sumX = x.reduce((sum, val) => sum + val, 0);
     const sumY = y.reduce((sum, val) => sum + val, 0);
-    const sumXY = x.reduce((sum, val, i) => sum + val * y[i], 0);
+    const sumXY = x.reduce((sum, val, i) => sum + val * (y[i] || 0), 0);
     const sumX2 = x.reduce((sum, val) => sum + val * val, 0);
     const sumY2 = y.reduce((sum, val) => sum + val * val, 0);
     
