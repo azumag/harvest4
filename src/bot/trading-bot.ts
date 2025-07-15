@@ -36,13 +36,11 @@ export class TradingBot {
     }
 
     this.isRunning = true;
-    console.log(`Starting trading bot for ${this.config.pair}`);
     
     try {
       await this.validateConfiguration();
       await this.tradingLoop();
     } catch (error) {
-      console.error('Trading bot error:', error);
       this.isRunning = false;
       throw error;
     }
@@ -50,29 +48,23 @@ export class TradingBot {
 
   async stop(): Promise<void> {
     this.isRunning = false;
-    console.log('Trading bot stopped');
     
     // Close all open positions
     await this.closeAllPositions();
     
     // Generate final report
-    console.log(this.profitCalculator.getPerformanceReport());
   }
 
   private async validateConfiguration(): Promise<void> {
     try {
       // Test API connection
       await this.client.getTicker(this.config.pair);
-      console.log('API connection validated');
       
       // Check balance
       const balances = await this.client.getBalance();
       const jpyBalance = balances.find(b => b.asset === 'jpy');
       const btcBalance = balances.find(b => b.asset === 'btc');
       
-      console.log('Current balances:');
-      console.log(`JPY: ${jpyBalance?.free_amount || '0'}`);
-      console.log(`BTC: ${btcBalance?.free_amount || '0'}`);
       
     } catch (error) {
       throw new Error(`Configuration validation failed: ${error}`);
@@ -85,7 +77,6 @@ export class TradingBot {
         await this.executeTradingCycle();
         await this.sleep(this.config.tradingInterval);
       } catch (error) {
-        console.error('Trading cycle error:', error);
         await this.sleep(5000); // Wait 5 seconds before retry
       }
     }
@@ -140,10 +131,8 @@ export class TradingBot {
         this.profitCalculator.addPosition(positionId, position);
         
         this.lastTradeTime = now;
-        console.log(`Order placed: ${signal.action} ${signal.amount} BTC at ${signal.price} JPY`);
       }
     } catch (error) {
-      console.error('Order execution error:', error);
     }
   }
 
@@ -159,7 +148,6 @@ export class TradingBot {
 
       return order.order_id;
     } catch (error) {
-      console.error('Failed to place order:', error);
       return null;
     }
   }
@@ -226,12 +214,9 @@ export class TradingBot {
       const trade = this.profitCalculator.closePosition(positionId, exitPrice, Date.now());
       this.activePositions.delete(positionId);
 
-      console.log(`Position closed: ${reason}`);
       if (trade) {
-        console.log(`Trade result: ${trade.profit.toFixed(2)} JPY (${(trade.returnRate * 100).toFixed(2)}%)`);
       }
     } catch (error) {
-      console.error('Failed to close position:', error);
     }
   }
 
@@ -246,17 +231,6 @@ export class TradingBot {
 
   private logTradingStatus(signal: TradingSignal): void {
     const metrics = this.profitCalculator.calculateProfitMetrics();
-    console.log(`
---- Trading Status ---
-Signal: ${signal.action} (${signal.confidence.toFixed(2)} confidence)
-Reason: ${signal.reason}
-Active Positions: ${this.activePositions.size}
-Total Profit: ${metrics.totalProfit.toFixed(2)} JPY
-Win Rate: ${(metrics.winRate * 100).toFixed(2)}%
-Total Trades: ${metrics.totalTrades}
-Current Balance: ${this.profitCalculator.getCurrentBalance().toFixed(2)} JPY
---------------------
-    `);
   }
 
   private sleep(ms: number): Promise<void> {

@@ -90,7 +90,6 @@ export class HistoricalDataManager {
         } catch (error) {
           retries++;
           if (retries >= maxRetries) {
-            console.error(`Failed to fetch data for ${pair} at ${timestamp}:`, error);
             break;
           }
           await new Promise(resolve => setTimeout(resolve, retryDelay));
@@ -134,7 +133,6 @@ export class HistoricalDataManager {
       const filePath = join(this.CACHE_DIR, `${key}.json`);
       await fs.writeFile(filePath, JSON.stringify(data, null, 2));
     } catch (error) {
-      console.error('Failed to save to cache:', error);
     }
   }
 
@@ -337,7 +335,6 @@ export class HistoricalDataManager {
         await fs.unlink(join(this.CACHE_DIR, file));
       }
     } catch (error) {
-      console.error('Failed to clear cache:', error);
     }
   }
 

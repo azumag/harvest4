@@ -4,7 +4,8 @@ import {
   PerformanceMetrics,
   MarketCondition,
   MarketConditionPerformance,
-  HistoricalDataPoint
+  HistoricalDataPoint,
+  DrawdownPoint
 } from '../types/backtest';
 
 export class PerformanceAnalyzer {
