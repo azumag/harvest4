@@ -1,7 +1,7 @@
 import { BitbankClient } from '../api/bitbank-client';
 import { TradingStrategy, TradingStrategyConfig } from '../strategies/trading-strategy';
 import { ProfitCalculator } from '../utils/profit-calculator';
-import { BitbankConfig, TradingSignal, TradingPosition } from '../types/bitbank';
+import { BitbankConfig, TradingSignal, TradingPosition, BitbankTicker } from '../types/bitbank';
 
 export interface TradingBotConfig extends BitbankConfig {
   pair: string;
@@ -155,7 +155,7 @@ export class TradingBot {
         pair: this.config.pair,
         amount: signal.amount.toString(),
         price: signal.price.toString(),
-        side: side,
+        side,
         type: 'limit',
       });
 
@@ -166,7 +166,7 @@ export class TradingBot {
     }
   }
 
-  private async checkStopLossAndTakeProfit(ticker: any): Promise<void> {
+  private async checkStopLossAndTakeProfit(ticker: BitbankTicker): Promise<void> {
     const currentPrice = parseFloat(ticker.last);
 
     for (const [positionId, position] of this.activePositions) {
