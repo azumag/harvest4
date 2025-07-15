@@ -1,5 +1,6 @@
 import { WebSocketStream } from '../api/websocket-stream';
 import { OrderBookData, TransactionData, TickerStreamData } from '../types/bitbank';
+import { io } from 'socket.io-client';
 
 // Mock socket.io-client
 jest.mock('socket.io-client', () => ({
@@ -16,7 +17,7 @@ describe('WebSocketStream', () => {
   let mockSocket: any;
 
   beforeEach(() => {
-    const { io } = require('socket.io-client');
+    // Mock setup - using jest.mock at the top
     mockSocket = {
       connect: jest.fn(),
       disconnect: jest.fn(),

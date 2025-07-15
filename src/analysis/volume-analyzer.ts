@@ -26,7 +26,6 @@ export class VolumeAnalyzer extends EventEmitter {
   private volumeHistory: number[] = [];
   private volumeProfile: Map<number, VolumeProfileEntry> = new Map();
   private config: VolumeAnalyzerConfig;
-  private priceRanges: Map<number, number[]> = new Map();
   private lastAnalysis: VolumeAnalysis | null = null;
 
   constructor(config: VolumeAnalyzerConfig = {}) {

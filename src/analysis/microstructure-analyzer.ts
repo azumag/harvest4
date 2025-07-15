@@ -77,13 +77,13 @@ export class MicrostructureAnalyzer extends EventEmitter {
   private recordSpread(orderBook: OrderBookData): void {
     if (orderBook.asks.length === 0 || orderBook.bids.length === 0) return;
     
-    const bestAsk = parseFloat(orderBook.asks[0].price);
-    const bestBid = parseFloat(orderBook.bids[0].price);
+    const bestAsk = parseFloat(orderBook.asks[0]?.price);
+    const bestBid = parseFloat(orderBook.bids[0]?.price);
     const spread = bestAsk - bestBid;
     const midPrice = (bestAsk + bestBid) / 2;
     
     // Calculate volume at best levels
-    const volume = parseFloat(orderBook.asks[0].amount) + parseFloat(orderBook.bids[0].amount);
+    const volume = parseFloat(orderBook.asks[0]?.amount) + parseFloat(orderBook.bids[0]?.amount);
     
     const spreadRecord: SpreadRecord = {
       timestamp: Date.now(),
@@ -125,8 +125,12 @@ export class MicrostructureAnalyzer extends EventEmitter {
     // For now, we'll simulate execution time as the time between consecutive transactions
     if (this.executionTimes.length > 0) {
       const lastTime = this.executionTimes[this.executionTimes.length - 1];
-      const executionTime = transaction.executed_at - lastTime;
-      this.executionTimes.push(executionTime);
+      if (lastTime !== undefined) {
+        const executionTime = transaction.executed_at - lastTime;
+        this.executionTimes.push(executionTime);
+      } else {
+        this.executionTimes.push(transaction.executed_at);
+      }
     } else {
       this.executionTimes.push(transaction.executed_at);
     }
@@ -234,8 +238,8 @@ export class MicrostructureAnalyzer extends EventEmitter {
   private calculateTradeFrequency(): number {
     if (this.priceImpacts.length < 2) return 0;
     
-    const timespan = this.priceImpacts[this.priceImpacts.length - 1].timestamp - 
-                    this.priceImpacts[0].timestamp;
+    const timespan = this.priceImpacts[this.priceImpacts.length - 1]?.timestamp - 
+                    this.priceImpacts[0]?.timestamp;
     
     return timespan > 0 ? (this.priceImpacts.length / timespan) * 1000 : 0; // trades per second
   }
@@ -291,10 +295,14 @@ export class MicrostructureAnalyzer extends EventEmitter {
     
     const intervals = [];
     for (let i = 1; i < this.executionTimes.length; i++) {
-      intervals.push(this.executionTimes[i] - this.executionTimes[i - 1]);
+      const current = this.executionTimes[i];
+      const previous = this.executionTimes[i - 1];
+      if (current !== undefined && previous !== undefined) {
+        intervals.push(current - previous);
+      }
     }
     
-    return intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length;
+    return intervals.length > 0 ? intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length : 0;
   }
 
   private checkForAlerts(analysis: MarketMicrostructure): void {

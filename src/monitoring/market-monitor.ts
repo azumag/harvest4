@@ -17,9 +17,9 @@ import {
 interface MarketMonitorConfig {
   pair: string;
   websocketEndpoint?: string;
-  orderBookConfig?: unknown;
-  volumeConfig?: unknown;
-  microstructureConfig?: unknown;
+  orderBookConfig?: Record<string, unknown>;
+  volumeConfig?: Record<string, unknown>;
+  microstructureConfig?: Record<string, unknown>;
   alertThresholds?: {
     critical: number;
     high: number;
@@ -57,9 +57,9 @@ export class MarketMonitor extends EventEmitter {
       pair: this.config.pair
     });
 
-    this.orderBookManager = new OrderBookManager(this.config.orderBookConfig as any);
-    this.volumeAnalyzer = new VolumeAnalyzer(this.config.volumeConfig as any);
-    this.microstructureAnalyzer = new MicrostructureAnalyzer(this.config.microstructureConfig as any);
+    this.orderBookManager = new OrderBookManager(this.config.orderBookConfig as Record<string, unknown>);
+    this.volumeAnalyzer = new VolumeAnalyzer(this.config.volumeConfig as Record<string, unknown>);
+    this.microstructureAnalyzer = new MicrostructureAnalyzer(this.config.microstructureConfig as Record<string, unknown>);
 
     this.realtimeData = {
       pair: this.config.pair,

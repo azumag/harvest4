@@ -1,5 +1,9 @@
 import { MarketMonitor } from '../monitoring/market-monitor';
 import { MarketAlert } from '../types/bitbank';
+import { WebSocketStream } from '../api/websocket-stream';
+import { OrderBookManager } from '../api/orderbook-manager';
+import { VolumeAnalyzer } from '../analysis/volume-analyzer';
+import { MicrostructureAnalyzer } from '../analysis/microstructure-analyzer';
 
 // Mock all dependencies
 jest.mock('../api/websocket-stream');
@@ -15,11 +19,7 @@ describe('MarketMonitor', () => {
   let mockMicrostructureAnalyzer: any;
 
   beforeEach(() => {
-    // Setup mocks
-    const { WebSocketStream } = require('../api/websocket-stream');
-    const { OrderBookManager } = require('../api/orderbook-manager');
-    const { VolumeAnalyzer } = require('../analysis/volume-analyzer');
-    const { MicrostructureAnalyzer } = require('../analysis/microstructure-analyzer');
+    // Setup mocks - using jest.mock at the top of the file
 
     mockWebSocketStream = {
       connect: jest.fn().mockResolvedValue(undefined),

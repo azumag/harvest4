@@ -164,8 +164,8 @@ export class OrderBookManager extends EventEmitter {
       return 0;
     }
 
-    const bestAsk = parseFloat(this.orderBook.asks[0].price);
-    const bestBid = parseFloat(this.orderBook.bids[0].price);
+    const bestAsk = parseFloat(this.orderBook.asks[0]?.price);
+    const bestBid = parseFloat(this.orderBook.bids[0]?.price);
     
     return (bestAsk + bestBid) / 2;
   }
@@ -175,8 +175,8 @@ export class OrderBookManager extends EventEmitter {
       return 0;
     }
 
-    const bestAsk = parseFloat(this.orderBook.asks[0].price);
-    const bestBid = parseFloat(this.orderBook.bids[0].price);
+    const bestAsk = parseFloat(this.orderBook.asks[0]?.price);
+    const bestBid = parseFloat(this.orderBook.bids[0]?.price);
     
     return bestAsk - bestBid;
   }
