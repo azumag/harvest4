@@ -11,7 +11,7 @@ export class MarketMakingStrategy implements AdvancedTradingStrategy {
   config: MarketMakingConfig;
   
   private priceHistory: number[] = [];
-  private inventory: number = 0;
+  private inventory = 0;
   private maxInventory: number;
   private totalTrades = 0;
   private winningTrades = 0;
@@ -113,8 +113,8 @@ export class MarketMakingStrategy implements AdvancedTradingStrategy {
     return Math.max(adjustedSpread, 0.001); // Minimum 0.1% spread
   }
 
-  private generateMarketMakingSignal(ticker: BitbankTicker, currentPrice: number): TradingSignal {
-    const currentTime = Date.now();
+  private generateMarketMakingSignal(ticker: BitbankTicker, _currentPrice: number): TradingSignal {
+    // const _currentTime = Date.now();
     
     // Determine which side to quote based on inventory
     const inventoryRatio = this.inventory / this.maxInventory;
@@ -165,7 +165,7 @@ export class MarketMakingStrategy implements AdvancedTradingStrategy {
     return this.createHoldSignal(ticker, 'Inventory at capacity');
   }
 
-  private needsInventoryAdjustment(currentPrice: number): boolean {
+  private needsInventoryAdjustment(_currentPrice: number): boolean {
     const inventoryRatio = Math.abs(this.inventory) / this.maxInventory;
     return inventoryRatio > 0.8;
   }
@@ -203,7 +203,11 @@ export class MarketMakingStrategy implements AdvancedTradingStrategy {
     
     const returns = [];
     for (let i = 1; i < this.priceHistory.length; i++) {
-      returns.push((this.priceHistory[i] - this.priceHistory[i-1]) / this.priceHistory[i-1]);
+      const current = this.priceHistory[i];
+      const previous = this.priceHistory[i-1];
+      if (current && previous && previous !== 0) {
+        returns.push((current - previous) / previous);
+      }
     }
     
     const mean = returns.reduce((sum, ret) => sum + ret, 0) / returns.length;

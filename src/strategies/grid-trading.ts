@@ -12,7 +12,7 @@ export class GridTradingStrategy implements AdvancedTradingStrategy {
   
   private priceHistory: number[] = [];
   private gridLevels: Array<{ price: number; side: 'buy' | 'sell'; filled: boolean }> = [];
-  private basePrice: number = 0;
+  private basePrice = 0;
   private totalTrades = 0;
   private winningTrades = 0;
   private totalProfit = 0;

@@ -3,8 +3,6 @@ import { BacktestEngine } from './backtest-engine';
 import { PerformanceAnalyzer } from '../analysis/performance-analyzer';
 import { ParameterOptimizer } from '../optimization/parameter-optimizer';
 import { StrategyComparator } from '../comparison/strategy-comparator';
-import { BitbankConfig } from '../types/bitbank';
-import { TradingStrategyConfig } from '../strategies/trading-strategy';
 import {
   BacktestEngineConfig,
   HistoricalDataConfig,
@@ -14,8 +12,7 @@ import {
   OptimizationResult,
   WalkForwardResult,
   StrategyComparison,
-  PerformanceMetrics,
-  HistoricalDataPoint
+  DataQuality
 } from '../types/backtest';
 
 export class BacktestOrchestrator {
@@ -150,7 +147,7 @@ export class BacktestOrchestrator {
     
     console.log('Strategy comparison completed');
     console.log('Rankings:');
-    comparison.ranking.forEach((rank, index) => {
+    comparison.ranking.forEach((rank) => {
       console.log(`${rank.rank}. ${rank.name}: Score ${rank.score.toFixed(3)}`);
     });
     
@@ -345,7 +342,7 @@ export class BacktestOrchestrator {
     
     if (format === 'json') {
       return this.dataManager.exportData(
-        results as any,
+        results as Record<string, unknown>,
         'json',
         filename
       );
@@ -355,8 +352,8 @@ export class BacktestOrchestrator {
     }
   }
 
-  private convertResultsToCSV(results: FullAnalysisResult): any[] {
-    const csvData: any[] = [];
+  private convertResultsToCSV(results: FullAnalysisResult): Record<string, unknown>[] {
+    const csvData: Record<string, unknown>[] = [];
     
     results.optimizedBacktest.trades.forEach(trade => {
       csvData.push({
@@ -390,14 +387,14 @@ export class BacktestOrchestrator {
 }
 
 interface FullAnalysisResult {
-  dataQuality: any;
+  dataQuality: DataQuality;
   baselineBacktest: BacktestResult;
   optimizationResults: OptimizationResult[];
   optimizedBacktest: BacktestResult;
   comparison: StrategyComparison;
   walkForwardResult?: WalkForwardResult;
   targetAnalysis: TargetAnalysis;
-  detailedReport: any;
+  detailedReport: Record<string, unknown>;
   recommendations: string[];
 }
 

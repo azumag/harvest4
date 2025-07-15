@@ -4,7 +4,7 @@ export interface AdvancedStrategyConfig {
   name: string;
   enabled: boolean;
   weight: number;
-  params: Record<string, any>;
+  params: Record<string, unknown>;
 }
 
 export interface GridTradingConfig extends AdvancedStrategyConfig {

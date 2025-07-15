@@ -41,7 +41,10 @@ export class BacktestEngine {
       await this.processDataPoint(dataPoint);
     }
     
-    this.closeAllPositions(data[data.length - 1]);
+    const lastDataPoint = data[data.length - 1];
+    if (lastDataPoint) {
+      this.closeAllPositions(lastDataPoint);
+    }
     
     return this.generateResult();
   }
@@ -381,11 +384,16 @@ export class BacktestEngine {
     const returns: number[] = [];
     
     for (let i = 1; i < this.equityCurve.length; i++) {
-      const currentEquity = this.equityCurve[i].equity;
-      const previousEquity = this.equityCurve[i - 1].equity;
+      const current = this.equityCurve[i];
+      const previous = this.equityCurve[i - 1];
       
-      if (previousEquity > 0) {
-        returns.push((currentEquity - previousEquity) / previousEquity);
+      if (current && previous) {
+        const currentEquity = current.equity;
+        const previousEquity = previous.equity;
+        
+        if (previousEquity > 0) {
+          returns.push((currentEquity - previousEquity) / previousEquity);
+        }
       }
     }
     
@@ -434,19 +442,24 @@ export class BacktestEngine {
     const sortedMonths = Array.from(monthlyEquity.entries()).sort((a, b) => a[0].localeCompare(b[0]));
     
     for (let i = 1; i < sortedMonths.length; i++) {
-      const [currentMonthKey, currentEquity] = sortedMonths[i];
-      const [, previousEquity] = sortedMonths[i - 1];
+      const currentMonth = sortedMonths[i];
+      const previousMonth = sortedMonths[i - 1];
       
-      const [year, month] = currentMonthKey.split('-').map(Number);
-      const returnValue = currentEquity - previousEquity;
-      const returnPercent = previousEquity > 0 ? (returnValue / previousEquity) * 100 : 0;
-      
-      monthlyReturns.push({
-        year,
-        month,
-        return: returnValue,
-        returnPercent
-      });
+      if (currentMonth && previousMonth) {
+        const [currentMonthKey, currentEquity] = currentMonth;
+        const [, previousEquity] = previousMonth;
+        
+        const [year, month] = currentMonthKey.split('-').map(Number);
+        const returnValue = currentEquity - previousEquity;
+        const returnPercent = previousEquity > 0 ? (returnValue / previousEquity) * 100 : 0;
+        
+        monthlyReturns.push({
+          year,
+          month,
+          return: returnValue,
+          returnPercent
+        });
+      }
     }
     
     return monthlyReturns;

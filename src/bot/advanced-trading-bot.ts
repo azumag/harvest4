@@ -421,11 +421,11 @@ ${recommendations.map(rec => `- ${rec.strategy}: ${rec.reason}`).join('\n')}
     return Array.from(this.activePositions.values());
   }
 
-  getPortfolioSummary(): any {
+  getPortfolioSummary(): Record<string, unknown> {
     return this.strategyManager.getPortfolioSummary();
   }
 
-  getStrategyRecommendations(): any {
+  getStrategyRecommendations(): Record<string, unknown> {
     return this.strategyManager.getStrategyRecommendations();
   }
 
@@ -441,7 +441,7 @@ ${recommendations.map(rec => `- ${rec.strategy}: ${rec.reason}`).join('\n')}
     return this.isRunning;
   }
 
-  getTradeHistory(): any[] {
+  getTradeHistory(): Record<string, unknown>[] {
     return this.tradeHistory;
   }
 }

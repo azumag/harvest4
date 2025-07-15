@@ -103,7 +103,7 @@ export class MomentumStrategy implements AdvancedTradingStrategy {
     return (current - previous) / previous;
   }
 
-  private calculateRelativeStrengthIndex(period: number = 14): number {
+  private calculateRelativeStrengthIndex(period = 14): number {
     if (this.priceHistory.length < period + 1) {
       return 50; // Neutral RSI
     }
@@ -200,7 +200,7 @@ export class MomentumStrategy implements AdvancedTradingStrategy {
     return this.createHoldSignal(ticker, 'No breakout detected');
   }
 
-  private checkMomentumContinuation(ticker: BitbankTicker, currentPrice: number, currentVolume: number): TradingSignal {
+  private checkMomentumContinuation(ticker: BitbankTicker, currentPrice: number, _currentVolume: number): TradingSignal {
     if (this.momentumHistory.length < 5) {
       return this.createHoldSignal(ticker, 'Insufficient momentum history');
     }

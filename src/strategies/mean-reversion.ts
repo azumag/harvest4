@@ -163,7 +163,7 @@ export class MeanReversionStrategy implements AdvancedTradingStrategy {
     return (previousDistance - currentDistance) / mean;
   }
 
-  private calculateBollingerBands(period: number = 20, stdDevMultiplier: number = 2): {
+  private calculateBollingerBands(period = 20, stdDevMultiplier = 2): {
     upper: number;
     middle: number;
     lower: number;
@@ -189,7 +189,7 @@ export class MeanReversionStrategy implements AdvancedTradingStrategy {
     };
   }
 
-  private calculateRSI(period: number = 14): number {
+  private calculateRSI(period = 14): number {
     if (this.priceHistory.length < period + 1) {
       return 50; // Neutral RSI
     }

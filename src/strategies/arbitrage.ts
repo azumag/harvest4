@@ -126,7 +126,7 @@ export class ArbitrageStrategy implements AdvancedTradingStrategy {
     );
   }
 
-  private findBestArbitrageOpportunity(_currentPrice: number): any {
+  private findBestArbitrageOpportunity(_currentPrice: number): { buyPrice: number; sellPrice: number; spread: number; timestamp: number } | null {
     if (this.arbitrageOpportunities.length === 0) return null;
     
     // Find the opportunity with the highest spread
@@ -143,7 +143,7 @@ export class ArbitrageStrategy implements AdvancedTradingStrategy {
     return best;
   }
 
-  private generateArbitrageSignal(ticker: BitbankTicker, opportunity: any): TradingSignal {
+  private generateArbitrageSignal(ticker: BitbankTicker, opportunity: { buyPrice: number; sellPrice: number; spread: number; timestamp: number }): TradingSignal {
     const currentPrice = parseFloat(ticker.last);
     
     // Determine if we should buy or sell based on current price vs arbitrage prices

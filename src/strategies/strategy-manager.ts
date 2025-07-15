@@ -209,7 +209,7 @@ export class StrategyManager {
     console.log('Portfolio rebalanced:', this.portfolioAllocations);
   }
 
-  private calculateOptimalAllocations(performances: Map<string, StrategyPerformance>, marketAnalysis: any): PortfolioAllocation[] {
+  private calculateOptimalAllocations(performances: Map<string, StrategyPerformance>, marketAnalysis: Record<string, unknown>): PortfolioAllocation[] {
     const allocations: PortfolioAllocation[] = [];
     
     // Get recommended strategies for current market conditions
@@ -315,11 +315,11 @@ export class StrategyManager {
     }
   }
 
-  getMarketAnalysis(): any {
+  getMarketAnalysis(): Record<string, unknown> {
     return this.marketAnalyzer.analyzeMarket();
   }
 
-  getMarketSummary(): any {
+  getMarketSummary(): Record<string, unknown> {
     return this.marketAnalyzer.getMarketSummary();
   }
 
