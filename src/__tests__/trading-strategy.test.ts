@@ -69,15 +69,16 @@ describe('TradingStrategy', () => {
     });
 
     it('should generate buy signal for upward trend', () => {
-      // Create upward trend
+      // Create strong upward trend with sufficient price history
       const prices = [];
-      for (let i = 0; i < 15; i++) {
-        prices.push(5000000 + i * 10000); // Increasing price
+      for (let i = 0; i < 20; i++) {
+        prices.push(5000000 + i * 20000); // Stronger increase
       }
       
       prices.forEach(price => strategy.updatePrice(price));
 
-      const ticker = createMockTicker('5140000', '2000');
+      // High volume ticker to meet volume requirement > 1000
+      const ticker = createMockTicker('5380000', '5000');
       const signal = strategy.generateSignal(ticker);
 
       expect(signal.action).toBe('buy');
@@ -87,15 +88,16 @@ describe('TradingStrategy', () => {
     });
 
     it('should generate sell signal for downward trend', () => {
-      // Create downward trend
+      // Create strong downward trend
       const prices = [];
-      for (let i = 0; i < 15; i++) {
-        prices.push(5200000 - i * 10000); // Decreasing price
+      for (let i = 0; i < 20; i++) {
+        prices.push(5500000 - i * 20000); // Stronger decrease
       }
       
       prices.forEach(price => strategy.updatePrice(price));
 
-      const ticker = createMockTicker('5060000', '2000');
+      // High volume ticker to meet volume requirement > 1000
+      const ticker = createMockTicker('5120000', '5000');
       const signal = strategy.generateSignal(ticker);
 
       expect(signal.action).toBe('sell');
@@ -124,15 +126,16 @@ describe('TradingStrategy', () => {
 
   describe('risk management', () => {
     it('should reject low confidence signals', () => {
-      // Create weak upward trend
+      // Create moderate trend that passes basic criteria but has low confidence
       const prices = [];
-      for (let i = 0; i < 15; i++) {
-        prices.push(5000000 + i * 1000); // Small increase
+      for (let i = 0; i < 20; i++) {
+        prices.push(5000000 + i * 5000); // Small but consistent increase
       }
       
       prices.forEach(price => strategy.updatePrice(price));
 
-      const ticker = createMockTicker('5014000', '500'); // Low volume
+      // High volume to pass volume check, but small momentum for low confidence
+      const ticker = createMockTicker('5095000', '2000');
       const signal = strategy.generateSignal(ticker);
 
       expect(signal.action).toBe('hold');
@@ -142,20 +145,20 @@ describe('TradingStrategy', () => {
     it('should reject trades with low expected profit', () => {
       const lowProfitConfig: TradingStrategyConfig = {
         ...config,
-        maxTradeAmount: 100, // Very small trade amount
+        maxTradeAmount: 50, // Very small trade amount to trigger low profit rejection
       };
       
       const lowProfitStrategy = new TradingStrategy(lowProfitConfig);
       
-      // Create strong upward trend
+      // Create strong upward trend that would normally trigger a buy
       const prices = [];
-      for (let i = 0; i < 15; i++) {
-        prices.push(5000000 + i * 20000);
+      for (let i = 0; i < 20; i++) {
+        prices.push(5000000 + i * 30000); // Strong trend
       }
       
       prices.forEach(price => lowProfitStrategy.updatePrice(price));
 
-      const ticker = createMockTicker('5280000', '5000');
+      const ticker = createMockTicker('5570000', '5000');
       const signal = lowProfitStrategy.generateSignal(ticker);
 
       expect(signal.action).toBe('hold');

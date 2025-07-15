@@ -258,12 +258,12 @@ describe('DynamicRiskManager', () => {
 
   describe('Market regime detection', () => {
     it('should detect trending market', () => {
-      // Simulate strong uptrend - more aggressive movement
+      // Simulate strong uptrend - more aggressive movement to meet trend strength threshold
       const trendingTickers = Array.from({ length: 20 }, (_, i) => ({
         ...mockTicker,
-        last: (5000000 + i * 100000).toString(), // Doubled the increment
-        high: (5100000 + i * 100000).toString(),
-        low: (4900000 + i * 100000).toString(),
+        last: (5000000 + i * 150000).toString(), // Increased increment to ensure trend strength > 0.1
+        high: (5100000 + i * 150000).toString(),
+        low: (4900000 + i * 150000).toString(),
       }));
 
       trendingTickers.forEach(ticker => riskManager.updateMarketData(ticker));
