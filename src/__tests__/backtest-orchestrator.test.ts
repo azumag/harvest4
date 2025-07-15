@@ -66,7 +66,7 @@ describe('BacktestOrchestrator', () => {
       }),
       fillDataGaps: jest.fn().mockImplementation((data) => data),
       exportData: jest.fn().mockResolvedValue('/path/to/export/file.json'),
-      clearCache: jest.fn().mockResolvedValue(),
+      clearCache: jest.fn().mockResolvedValue(undefined),
       getDataStatistics: jest.fn().mockReturnValue({
         totalPoints: 100,
         startDate: Date.now() - 100 * 60 * 1000,

@@ -3,6 +3,7 @@ import { TradingStrategyConfig } from '../strategies/trading-strategy';
 import {
   HistoricalDataPoint,
   BacktestConfig,
+  BacktestResult,
   OptimizationConfig,
   OptimizationParameter,
   OptimizationResult,
@@ -10,7 +11,8 @@ import {
   WalkForwardResult,
   WalkForwardSegment,
   StabilityMetrics,
-  RobustnessMetrics
+  RobustnessMetrics,
+  PerformanceMetrics
 } from '../types/backtest';
 
 export class ParameterOptimizer {
@@ -45,10 +47,11 @@ export class ParameterOptimizer {
     const results: OptimizationResult[] = [];
     const parameterCombinations = this.generateParameterCombinations(config.parameters);
     
-    console.log(`Grid Search: Testing ${parameterCombinations.length} parameter combinations`);
     
     for (let i = 0; i < parameterCombinations.length; i++) {
       const parameters = parameterCombinations[i];
+      if (!parameters) continue;
+      
       const strategyConfig = { ...baseStrategy, ...parameters };
       
       try {
@@ -72,10 +75,10 @@ export class ParameterOptimizer {
         });
         
         if (i % 10 === 0) {
-          console.log(`Progress: ${i + 1}/${parameterCombinations.length} (${((i + 1) / parameterCombinations.length * 100).toFixed(1)}%)`);
+          // Progress logging placeholder
         }
       } catch (error) {
-        console.error(`Error optimizing parameters ${JSON.stringify(parameters)}:`, error);
+        // Error handled silently - parameter evaluation failed
       }
     }
     
@@ -92,6 +95,8 @@ export class ParameterOptimizer {
       }
       
       const param = parameters[index];
+      if (!param) return;
+      
       for (let value = param.min; value <= param.max; value += param.step) {
         current[param.name] = value;
         generateCombinations(index + 1, current);
@@ -113,7 +118,6 @@ export class ParameterOptimizer {
     const eliteSize = config.eliteSize || 10;
     const convergenceThreshold = config.convergenceThreshold || 0.001;
     
-    console.log(`Genetic Algorithm: Population=${populationSize}, Generations=${maxGenerations}`);
     
     let population = this.initializePopulation(config.parameters, populationSize);
     let bestFitness = -Infinity;
@@ -132,7 +136,6 @@ export class ParameterOptimizer {
       }
       
       if (stagnationCount >= 10) {
-        console.log(`Converged after ${generation + 1} generations`);
         break;
       }
       
@@ -152,7 +155,7 @@ export class ParameterOptimizer {
       population = newPopulation;
       
       if (generation % 10 === 0) {
-        console.log(`Generation ${generation + 1}: Best fitness = ${bestFitness.toFixed(4)}`);
+        // Progress logging placeholder
       }
     }
     
@@ -211,7 +214,7 @@ export class ParameterOptimizer {
         results.push({
           parameters: individual,
           fitness: -Infinity,
-          backtest: {} as any,
+          backtest: {} as BacktestResult,
           metrics: {
             return: -Infinity,
             sharpeRatio: -Infinity,
@@ -232,7 +235,10 @@ export class ParameterOptimizer {
     
     for (let i = 0; i < tournamentSize; i++) {
       const randomIndex = Math.floor(Math.random() * results.length);
-      tournament.push(results[randomIndex]);
+      const selected = results[randomIndex];
+      if (selected) {
+        tournament.push(selected);
+      }
     }
     
     return tournament.reduce((best, current) => current.fitness > best.fitness ? current : best);
@@ -248,9 +254,11 @@ export class ParameterOptimizer {
     
     parameters.forEach(param => {
       if (Math.random() < crossoverRate) {
-        child[param.name] = Math.random() < 0.5 ? parent1[param.name] : parent2[param.name];
+        const value1 = parent1[param.name];
+        const value2 = parent2[param.name];
+        child[param.name] = Math.random() < 0.5 ? (value1 ?? param.min) : (value2 ?? param.min);
       } else {
-        child[param.name] = parent1[param.name];
+        child[param.name] = parent1[param.name] ?? param.min;
       }
     });
     
@@ -268,7 +276,8 @@ export class ParameterOptimizer {
       if (Math.random() < mutationRate) {
         const range = param.max - param.min;
         const mutation = (Math.random() - 0.5) * range * 0.1; // 10% of range
-        mutated[param.name] = Math.max(param.min, Math.min(param.max, individual[param.name] + mutation));
+        const currentValue = individual[param.name] ?? param.min;
+        mutated[param.name] = Math.max(param.min, Math.min(param.max, currentValue + mutation));
       }
     });
     
@@ -282,7 +291,6 @@ export class ParameterOptimizer {
     const results: OptimizationResult[] = [];
     const maxIterations = config.maxIterations || 1000;
     
-    console.log(`Random Search: Testing ${maxIterations} random parameter combinations`);
     
     for (let i = 0; i < maxIterations; i++) {
       const parameters: Record<string, number> = {};
@@ -314,10 +322,10 @@ export class ParameterOptimizer {
         });
         
         if (i % 50 === 0) {
-          console.log(`Progress: ${i + 1}/${maxIterations} (${((i + 1) / maxIterations * 100).toFixed(1)}%)`);
+          // Progress logging placeholder
         }
       } catch (error) {
-        console.error(`Error optimizing parameters ${JSON.stringify(parameters)}:`, error);
+        // Error handled silently - parameter evaluation failed
       }
     }
     
@@ -325,7 +333,7 @@ export class ParameterOptimizer {
   }
 
   private calculateFitness(
-    result: any,
+    result: BacktestResult,
     fitnessFunction: 'return' | 'sharpe' | 'calmar' | 'profit_factor' | 'composite'
   ): number {
     switch (fitnessFunction) {
@@ -344,7 +352,7 @@ export class ParameterOptimizer {
     }
   }
 
-  private calculateCompositeFitness(result: any): number {
+  private calculateCompositeFitness(result: BacktestResult): number {
     const returnScore = Math.max(0, result.totalReturnPercent) / 100;
     const sharpeScore = Math.max(0, result.sharpeRatio) / 3;
     const drawdownPenalty = Math.max(0, result.maxDrawdownPercent) / 100;
@@ -362,7 +370,6 @@ export class ParameterOptimizer {
     const segments: WalkForwardSegment[] = [];
     const dataLength = this.data.length;
     
-    console.log('Starting Walk-Forward Analysis...');
     
     for (let i = 0; i < dataLength - walkForwardConfig.windowSize; i += walkForwardConfig.stepSize) {
       const segmentStart = i;
@@ -386,28 +393,42 @@ export class ParameterOptimizer {
         continue;
       }
       
-      const bestParameters = optimizationResults[0].parameters;
-      const inSampleResult = optimizationResults[0].backtest;
+      const bestResult = optimizationResults[0];
+      if (!bestResult) {
+        continue;
+      }
       
-      const testOptimizer = new ParameterOptimizer(testData, this.backtestConfig);
+      const bestParameters = bestResult.parameters;
+      const inSampleResult = bestResult.backtest;
+      
       const testStrategyConfig = { ...baseStrategy, ...bestParameters };
       const testBacktest = new BacktestEngine(this.backtestConfig, testStrategyConfig);
       const outOfSampleResult = await testBacktest.runBacktest(testData);
       
       const degradation = this.calculateDegradation(inSampleResult, outOfSampleResult);
       
+      const segmentStartData = this.data[segmentStart];
+      const segmentEndData = this.data[segmentEnd - 1];
+      const optimizationStartData = this.data[segmentStart];
+      const optimizationEndData = this.data[optimizationEnd - 1];
+      const testStartData = this.data[testStart];
+      const testEndData = this.data[testEnd - 1];
+      
+      if (!segmentStartData || !segmentEndData || !optimizationStartData || !optimizationEndData || !testStartData || !testEndData) {
+        continue;
+      }
+      
       segments.push({
-        startDate: this.data[segmentStart].timestamp,
-        endDate: this.data[segmentEnd - 1].timestamp,
-        optimizationPeriod: [this.data[segmentStart].timestamp, this.data[optimizationEnd - 1].timestamp],
-        testPeriod: [this.data[testStart].timestamp, this.data[testEnd - 1].timestamp],
+        startDate: segmentStartData.timestamp,
+        endDate: segmentEndData.timestamp,
+        optimizationPeriod: [optimizationStartData.timestamp, optimizationEndData.timestamp],
+        testPeriod: [testStartData.timestamp, testEndData.timestamp],
         bestParameters,
         inSampleResult,
         outOfSampleResult,
         degradation
       });
       
-      console.log(`Segment ${segments.length}: In-Sample Return: ${inSampleResult.totalReturnPercent.toFixed(2)}%, Out-of-Sample Return: ${outOfSampleResult.totalReturnPercent.toFixed(2)}%, Degradation: ${degradation.toFixed(2)}%`);
     }
     
     const overallMetrics = this.calculateOverallMetrics(segments);
@@ -422,16 +443,16 @@ export class ParameterOptimizer {
     };
   }
 
-  private calculateDegradation(inSample: any, outOfSample: any): number {
+  private calculateDegradation(inSample: BacktestResult, outOfSample: BacktestResult): number {
     if (inSample.totalReturnPercent === 0) return 0;
     return ((inSample.totalReturnPercent - outOfSample.totalReturnPercent) / Math.abs(inSample.totalReturnPercent)) * 100;
   }
 
-  private calculateOverallMetrics(segments: WalkForwardSegment[]): any {
+  private calculateOverallMetrics(segments: WalkForwardSegment[]): PerformanceMetrics {
     const outOfSampleResults = segments.map(s => s.outOfSampleResult);
     
     const totalReturn = outOfSampleResults.reduce((sum, r) => sum + r.totalReturnPercent, 0);
-    const averageReturn = totalReturn / outOfSampleResults.length;
+    // const averageReturn = totalReturn / outOfSampleResults.length;
     
     const returns = outOfSampleResults.map(r => r.totalReturnPercent / 100);
     const meanReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
@@ -460,11 +481,34 @@ export class ParameterOptimizer {
   }
 
   private calculateStabilityMetrics(segments: WalkForwardSegment[]): StabilityMetrics {
-    const parameterNames = Object.keys(segments[0].bestParameters);
+    if (segments.length === 0) {
+      return {
+        parameterStability: 0,
+        performanceStability: 0,
+        returnStability: 0,
+        drawdownStability: 0,
+        consistencyScore: 0
+      };
+    }
+    
+    const firstSegment = segments[0];
+    if (!firstSegment) {
+      return {
+        parameterStability: 0,
+        performanceStability: 0,
+        returnStability: 0,
+        drawdownStability: 0,
+        consistencyScore: 0
+      };
+    }
+    
+    const parameterNames = Object.keys(firstSegment.bestParameters);
     const parameterStabilities: number[] = [];
     
     parameterNames.forEach(name => {
-      const values = segments.map(s => s.bestParameters[name]);
+      const values = segments.map(s => s.bestParameters[name]).filter(v => v !== undefined);
+      if (values.length === 0) return;
+      
       const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
       const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length;
       const stability = variance > 0 ? 1 / (1 + Math.sqrt(variance)) : 1;
@@ -524,8 +568,14 @@ export class ParameterOptimizer {
     const validationResults: OptimizationResult[] = [];
     
     for (const result of topResults) {
-      const strategyConfig = { ...result.parameters };
-      const backtest = new BacktestEngine(this.backtestConfig, strategyConfig as any);
+      const strategyConfig: TradingStrategyConfig = {
+        buyThreshold: result.parameters['buyThreshold'] || 0.02,
+        sellThreshold: result.parameters['sellThreshold'] || 0.02,
+        minProfitMargin: result.parameters['minProfitMargin'] || 0.01,
+        maxTradeAmount: result.parameters['maxTradeAmount'] || 10000,
+        riskTolerance: result.parameters['riskTolerance'] || 0.8
+      };
+      const backtest = new BacktestEngine(this.backtestConfig, strategyConfig);
       
       backtest.runBacktest(validationData).then(validationResult => {
         validationResults.push({
@@ -580,7 +630,7 @@ export class ParameterOptimizer {
     const n = x.length;
     const sumX = x.reduce((sum, val) => sum + val, 0);
     const sumY = y.reduce((sum, val) => sum + val, 0);
-    const sumXY = x.reduce((sum, val, i) => sum + val * y[i], 0);
+    const sumXY = x.reduce((sum, val, i) => sum + val * (y[i] ?? 0), 0);
     const sumX2 = x.reduce((sum, val) => sum + val * val, 0);
     const sumY2 = y.reduce((sum, val) => sum + val * val, 0);
     

@@ -41,7 +41,10 @@ export class BacktestEngine {
       await this.processDataPoint(dataPoint);
     }
     
-    this.closeAllPositions(data[data.length - 1]);
+    const lastDataPoint = data[data.length - 1];
+    if (lastDataPoint) {
+      this.closeAllPositions(lastDataPoint);
+    }
     
     return this.generateResult();
   }
@@ -381,8 +384,13 @@ export class BacktestEngine {
     const returns: number[] = [];
     
     for (let i = 1; i < this.equityCurve.length; i++) {
-      const currentEquity = this.equityCurve[i].equity;
-      const previousEquity = this.equityCurve[i - 1].equity;
+      const current = this.equityCurve[i];
+      const previous = this.equityCurve[i - 1];
+      
+      if (!current || !previous) continue;
+      
+      const currentEquity = current.equity;
+      const previousEquity = previous.equity;
       
       if (previousEquity > 0) {
         returns.push((currentEquity - previousEquity) / previousEquity);
@@ -434,10 +442,17 @@ export class BacktestEngine {
     const sortedMonths = Array.from(monthlyEquity.entries()).sort((a, b) => a[0].localeCompare(b[0]));
     
     for (let i = 1; i < sortedMonths.length; i++) {
-      const [currentMonthKey, currentEquity] = sortedMonths[i];
-      const [, previousEquity] = sortedMonths[i - 1];
+      const current = sortedMonths[i];
+      const previous = sortedMonths[i - 1];
       
-      const [year, month] = currentMonthKey.split('-').map(Number);
+      if (!current || !previous) continue;
+      
+      const [currentMonthKey, currentEquity] = current;
+      const [, previousEquity] = previous;
+      
+      const [yearStr, monthStr] = currentMonthKey.split('-');
+      const year = parseInt(yearStr || '0', 10);
+      const month = parseInt(monthStr || '0', 10);
       const returnValue = currentEquity - previousEquity;
       const returnPercent = previousEquity > 0 ? (returnValue / previousEquity) * 100 : 0;
       
